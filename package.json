@@ -1,0 +1,26 @@
+{
+  "name": "svg-editor-ts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An object-oriented TypeScript SVG editor and architectural comparison with the C++ implementation.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit && eslint . --max-warnings 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "cli": "npm run build --silent && node dist/cli/main.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^4.0.13"
+  }
+}
+

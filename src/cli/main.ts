@@ -20,8 +20,8 @@ async function main(): Promise<void> {
   stdout.write(`svg-editor ${VERSION} — type 'help' for commands\n\n`);
   const terminal = createInterface({ input: stdin, output: stdout });
   try {
-    for (;;) {
-      const line = await terminal.question("svg> ");
+    stdout.write("svg> ");
+    for await (const line of terminal) {
       const result = session.run(line);
       if (result.output !== "") {
         stdout.write(`${result.output}\n`);
@@ -29,6 +29,7 @@ async function main(): Promise<void> {
       if (result.exited) {
         return;
       }
+      stdout.write("svg> ");
     }
   } finally {
     terminal.close();

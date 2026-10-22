@@ -1,5 +1,6 @@
 import type { EditMode } from "../NodeRef.js";
 import type { LengthPercentage } from "../../model/values/LengthPercentage.js";
+import type { HistoryEntry } from "./HistoryEntry.js";
 
 export class NodeName {
   public constructor(
@@ -161,11 +162,19 @@ export class Opened extends EditEvent {
   public readonly eventName = "opened";
   public constructor(
     public readonly path: string,
-    public readonly assignedIds: readonly string[],
+    public readonly assignedIds: readonly AssignedIdName[],
     public readonly elements: number,
   ) {
     super();
   }
+}
+
+export class AssignedIdName {
+  public constructor(
+    public readonly id: string,
+    public readonly element: string,
+    public readonly originalId: string,
+  ) {}
 }
 export class Saved extends EditEvent {
   public readonly eventName = "saved";
@@ -205,6 +214,8 @@ export class CheckedOut extends EditEvent {
     public readonly depth: number,
     public readonly commit: number,
     public readonly noEffect: boolean,
+    public readonly baseline: number,
+    public readonly entries: readonly HistoryEntry[],
   ) {
     super();
   }

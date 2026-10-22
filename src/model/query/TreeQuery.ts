@@ -1,4 +1,5 @@
 import type { Document } from "../document/Document.js";
+import { PlainTextNode } from "../node/PlainTextNode.js";
 import type { ElementNode, Node } from "../node/index.js";
 import type { Vid } from "../store/hiveState.js";
 import type { Transform } from "../values/Transform.js";
@@ -58,7 +59,7 @@ export class TreeQuery {
     return new ShownNode(
       id,
       node,
-      this.document.textContent(id),
+      this.document.directText(id),
       this.document.transform(id),
       parentId,
       parentNode,
@@ -75,13 +76,16 @@ export class TreeQuery {
     if (node === undefined) {
       return;
     }
+    if (node instanceof PlainTextNode) {
+      return;
+    }
     rows.push(
       new QueryRow(
         depth,
         last,
         id,
         node,
-        this.document.textContent(id),
+        this.document.directText(id),
         this.document.transform(id),
       ),
     );

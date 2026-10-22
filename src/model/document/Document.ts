@@ -84,6 +84,10 @@ export class Document {
     return this.store.textContent(id);
   }
 
+  public directText(id: Vid): string {
+    return this.store.directText(id);
+  }
+
   public transaction(): DocumentTransaction {
     return new DocumentTransaction(this.store);
   }

@@ -77,6 +77,7 @@ import {
   DuplicateId,
   EmptyContainer,
   EmptyGroup,
+  IncompatibleLengths,
   InternalError,
   InvalidId,
   MissingContainer,
@@ -748,6 +749,7 @@ export class Editor {
     if (moved === undefined) {
       return Outcome.refused(Kind.Change, new UnknownCommit(command.commit));
     }
+    const timeline = this.history(command.limit);
     return Outcome.happened(
       Kind.Change,
       new CheckedOut(
@@ -755,6 +757,8 @@ export class Editor {
         this.document.depth(),
         command.commit,
         moved.noEffect,
+        timeline.baseline,
+        timeline.entries,
       ),
     );
   }
@@ -894,11 +898,17 @@ export class Editor {
             (command as Move).dy,
           );
       if (replacement === null) {
+        const existing = this.firstParam(source);
         return Outcome.refused(
           Kind.Change,
-          new UnknownAttribute(
-            scaling ? "params" : "params",
-          ),
+          existing === null
+            ? new UnknownAttribute("params")
+            : new IncompatibleLengths(
+                scaling
+                  ? String((command as ScaleBy).factor)
+                  : (command as Move).dx.toDisplayText(),
+                existing.toDisplayText(),
+              ),
         );
       }
       return this.updateOne(
@@ -1118,6 +1128,23 @@ export class Editor {
     }
     const candidate = (command as unknown as { value?: unknown }).value;
     return candidate instanceof LengthPercentage ? candidate : null;
+  }
+
+  private firstParam(node: Node): LengthPercentage | null {
+    if (node instanceof Rect || node instanceof Circle || node instanceof Ellipse) {
+      return node instanceof Rect
+        ? node.x
+        : node instanceof Circle
+          ? node.cx
+          : node.cx;
+    }
+    if (node instanceof Line) {
+      return node.x1;
+    }
+    if (node instanceof TextNode) {
+      return node.common.x;
+    }
+    return null;
   }
 
   private attributeText(command: AttributeCommand): string {

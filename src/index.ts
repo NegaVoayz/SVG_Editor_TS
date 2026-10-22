@@ -10,4 +10,7 @@ export * from "./model/query/TreeQuery.js";
 export * from "./protocol/index.js";
 export * from "./editor/index.js";
 export * from "./plugin/index.js";
+export * from "./planner/index.js";
+export * from "./ui/index.js";
+export * from "./ui/Session.js";
 

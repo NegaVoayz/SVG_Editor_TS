@@ -91,11 +91,13 @@ export class TreeStore {
   private rootId: Vid = NO_ID;
   private readonly checkouts: CommitId[] = [];
   private position = 0;
+  private contextHighWater: CommitId = 0;
 
   public reset(
     width?: LengthPercentage,
     height?: LengthPercentage,
   ): void {
+    this.view = undefined;
     this.hive.clear();
     this.checkouts.length = 0;
     this.position = 0;
@@ -133,8 +135,14 @@ export class TreeStore {
 
   public commit(edit: TreeEdit, commitId?: CommitId): void {
     const before = this.view?.commitId ?? 0;
-    this.view = edit.commit(commitId);
+    const contextCommit =
+      commitId ??
+      (this.view === undefined && this.checkouts.length === 0
+        ? this.contextHighWater + 1
+        : undefined);
+    this.view = edit.commit(contextCommit);
     const after = this.view.commitId;
+    this.contextHighWater = Math.max(this.contextHighWater, after);
     if (after === before) {
       return;
     }
@@ -339,6 +347,14 @@ export class TreeStore {
       }
     }
     return content;
+  }
+
+  public directText(id: Vid): string {
+    return this.children(id)
+      .map((child) => this.node(child))
+      .filter((node): node is PlainTextNode => node instanceof PlainTextNode)
+      .map((node) => node.content)
+      .join("");
   }
 
   public hasDocument(): boolean {

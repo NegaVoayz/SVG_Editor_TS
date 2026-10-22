@@ -5,6 +5,7 @@ import {
   Line,
   PlainTextNode,
   Rect,
+  TextCommon,
   TextWrapper,
   type Node,
 } from "../../model/node/index.js";
@@ -164,7 +165,7 @@ export class CreateText extends CreateIntent {
 
   public build(): Node {
     return new TextWrapper(
-      undefined,
+      new TextCommon(this.x, this.y),
       new IdentityAttr(this.id),
       undefined,
       undefined,

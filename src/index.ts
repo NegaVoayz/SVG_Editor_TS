@@ -6,4 +6,6 @@ export * from "./model/node/index.js";
 export * from "./model/visit/NodeVisitor.js";
 export * from "./model/document/index.js";
 export * from "./io/index.js";
+export * from "./model/query/TreeQuery.js";
+export * from "./protocol/index.js";
 

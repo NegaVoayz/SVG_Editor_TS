@@ -42,7 +42,7 @@ const COMMON_ATTRIBUTES = new Set([
 
 const ELEMENT_ATTRIBUTES: Readonly<Record<string, ReadonlySet<string>>> = {
   svg: new Set(["width", "height", "viewBox", "xmlns"]),
-  g: new Set(),
+  g: new Set(["data-kind"]),
   defs: new Set(),
   symbol: new Set(),
   switch: new Set(),
@@ -248,6 +248,7 @@ function rawElement(element: XmlElement, isRoot: boolean): ParsedNode {
         common.identity,
         common.paint,
         common.transformAttr,
+        element.attribute("data-kind") ?? null,
       );
       break;
     case "defs":

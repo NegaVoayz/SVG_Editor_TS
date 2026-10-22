@@ -114,7 +114,10 @@ export class SvgSerializer extends NodeVisitor<void> {
   }
 
   public visitGroup(node: Group): void {
-    this.writeElement(node, "");
+    this.writeElement(
+      node,
+      node.dataKind === null ? "" : attribute("data-kind", node.dataKind),
+    );
   }
 
   public visitDefs(node: Defs): void {

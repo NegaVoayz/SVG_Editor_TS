@@ -5,6 +5,15 @@ import type { TransformAttr } from "../values/TransformAttr.js";
 import { ContainerNode } from "./ContainerNode.js";
 
 export class Group extends ContainerNode {
+  public constructor(
+    identity?: IdentityAttr,
+    paint?: PaintAttr,
+    transformAttr?: TransformAttr,
+    public readonly dataKind: string | null = null,
+  ) {
+    super(identity, paint, transformAttr);
+  }
+
   public override get elementName(): string {
     return "g";
   }
@@ -18,7 +27,7 @@ export class Group extends ContainerNode {
     paint: PaintAttr,
     transformAttr: TransformAttr,
   ): Group {
-    return new Group(identity, paint, transformAttr);
+    return new Group(identity, paint, transformAttr, this.dataKind);
   }
 }
 

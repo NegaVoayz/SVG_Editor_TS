@@ -3,6 +3,7 @@ import {
   Ellipse,
   Group,
   Line,
+  PlainTextNode,
   Rect,
   TextWrapper,
   type Node,
@@ -18,6 +19,13 @@ import type { Outcome } from "../Outcome.js";
 import { Command } from "./Command.js";
 import type { CommandContext } from "./CommandContext.js";
 
+export class CreatedChild {
+  public constructor(
+    public readonly node: Node,
+    public readonly children: readonly CreatedChild[] = [],
+  ) {}
+}
+
 export abstract class CreateIntent extends Command {
   public readonly kind = Kind.Change;
 
@@ -30,6 +38,10 @@ export abstract class CreateIntent extends Command {
   }
 
   public abstract build(): Node;
+
+  public children(): readonly CreatedChild[] {
+    return [];
+  }
 
   public execute(context: CommandContext): Outcome {
     return context.create(this);
@@ -158,9 +170,21 @@ export class CreateText extends CreateIntent {
       undefined,
     );
   }
+
+  public override children(): readonly CreatedChild[] {
+    return [new CreatedChild(new PlainTextNode(this.content))];
+  }
 }
 
 export class CreateGroup extends CreateIntent {
+  public constructor(
+    id: string,
+    parent: NodeRef = new RootRef(),
+    parentNamed = false,
+  ) {
+    super(id, parent, parentNamed);
+  }
+
   public build(): Node {
     return new Group(new IdentityAttr(this.id));
   }

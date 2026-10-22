@@ -8,4 +8,6 @@ export * from "./model/document/index.js";
 export * from "./io/index.js";
 export * from "./model/query/TreeQuery.js";
 export * from "./protocol/index.js";
+export * from "./editor/index.js";
+export * from "./plugin/index.js";
 

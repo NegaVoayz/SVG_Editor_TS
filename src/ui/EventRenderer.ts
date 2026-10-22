@@ -5,9 +5,12 @@ import {
   AlreadyBack,
   AlreadyFront,
   AttributeSet,
+  BoxFillPropagated,
+  BoxLabelSet,
   CanvasSet,
   CheckedOut,
   ContentSet,
+  CompositeCreated,
   Created,
   Deleted,
   Grouped,
@@ -44,6 +47,15 @@ export class EventRenderer {
   public render(event: EditEvent): string {
     if (event instanceof Created) {
       return `${label(event.node)} created${event.parentNamed ? ` in ${label(event.parent)}` : ""}`;
+    }
+    if (event instanceof CompositeCreated) {
+      return `${label(event.node)} created (${[label(event.node), ...event.children.map(label)].join(" + ")})`;
+    }
+    if (event instanceof BoxFillPropagated) {
+      return `${label(event.node)} fill propagated to ${event.child.id}`;
+    }
+    if (event instanceof BoxLabelSet) {
+      return `${label(event.node)} label updated: ${quoted(event.content)}`;
     }
     if (event instanceof Deleted) {
       return `${label(event.node)} deleted${event.descendants === 0 ? "" : ` (${elementCount(event.descendants)})`}`;
@@ -104,6 +116,9 @@ export class EventRenderer {
       return `saved to ${quoteIfNeeded(event.path)} (${elementCount(event.elements)})`;
     }
     if (event instanceof Undone) {
+      if (event.original instanceof BoxLabelSet) {
+        return `undo: ${label(event.original.node)} label restored: ${quoted(event.original.previousContent)} (HEAD ${String(event.checkout)})`;
+      }
       const original =
         event.original === null
           ? "undone"

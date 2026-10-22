@@ -4,14 +4,14 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { Session } from "../src/index.js";
+import { Rect, Session } from "../src/index.js";
 
 function fixture(name: string): string {
   return join(import.meta.dirname, "fixtures", name);
 }
 
 function run(instructions: string): string {
-  return new Session().run(instructions).output;
+  return new Session({ moveDefaultsToTransform: false }).run(instructions).output;
 }
 
 describe("CLI behaviour", () => {
@@ -475,5 +475,99 @@ describe("CLI behaviour", () => {
     expect(output).not.toContain(
       "3 +rect#r moved by (5, 7) (HEAD)",
     );
+  });
+
+  it("keeps zoom outside the document and history", () => {
+    const session = new Session({ moveDefaultsToTransform: false });
+    const output = session.run("init; zoom 2; history").output;
+    expect(output).toContain("zoom 2x");
+    expect(output).toContain("1 +baseline (HEAD)");
+    expect(session.document.depth()).toBe(0);
+    expect(session.zoom()).toBe(2);
+  });
+
+  it("round-trips opacity through tree, show, save, and read", () => {
+    const directory = mkdtempSync(join(tmpdir(), "svg-editor-ts-opacity-"));
+    const path = join(directory, "opacity.svg");
+    const output = run(
+      `init; create rect r 0 0 10 10; set r opacity 0.5; tree; show r; save ${path}; read ${path}; show r`,
+    );
+    expect(output.match(/opacity=0\.5/gu)?.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("rejects opacity outside the zero-to-one range", () => {
+    expect(run("init; create rect r 0 0 1 1; set r opacity 2")).toContain(
+      "opacity must be between 0 and 1",
+    );
+  });
+
+  it("creates, moves, scales, and round-trips polygon points", () => {
+    const directory = mkdtempSync(join(tmpdir(), "svg-editor-ts-polygon-"));
+    const path = join(directory, "polygon.svg");
+    const output = run(
+      `init; create polygon p 0 0 10 0 10 10 #00ff00; move p 5 2 params restrict; scale p 2 params restrict; tree; save ${path}; read ${path}; tree`,
+    );
+    expect(output).toContain("fill=#00ff00");
+    expect(output.match(/points=10,4 30,4 30,24/gu)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("implements the composite box creation, propagation, and round trip", () => {
+    const directory = mkdtempSync(join(tmpdir(), "svg-editor-ts-box-"));
+    const path = join(directory, "box.svg");
+    const output = run(
+      `init; create box n1 120 100 160 60 "Start"; tree; set n1 fill #f5a623; set n1 label "Start v2"; save ${path}; read ${path}; tree`,
+    );
+    expect(output).toContain(
+      "box#n1 created (box#n1 + rect#n1-rect + text#n1-label)",
+    );
+    expect(output).toContain("box#n1 fill propagated to n1-rect");
+    expect(output).toContain('box#n1 label updated: "Start v2"');
+    expect(output.match(/g#n1 \(box\)/gu)?.length).toBeGreaterThanOrEqual(2);
+    expect(output).toContain("fill=#f5a623");
+  });
+
+  it("undoes a box label to its previous words", () => {
+    const output = run(
+      'init; create box n1 0 0 100 40 "before"; set n1 label "after"; undo',
+    );
+    expect(output).toContain('box#n1 label restored: "before"');
+  });
+
+  it("refuses ungrouping a composite box", () => {
+    expect(
+      run('init; create box n1 0 0 100 40 "box"; ungroup n1'),
+    ).toContain("error: cannot ungroup composite shape: n1");
+  });
+
+  it("caps history at the configured default", () => {
+    const session = new Session({
+      moveDefaultsToTransform: false,
+      historyLimit: 5,
+    });
+    let script = "init";
+    for (let index = 0; index < 15; index += 1) {
+      script += `; create g g${String(index)}`;
+    }
+    script += "; history";
+    const output = session.run(script).output;
+    const historyLines = output
+      .split("\n")
+      .filter((line) => /^\s*\d+ \+/u.test(line));
+    expect(historyLines).toHaveLength(6);
+    expect(output).toContain("16 +g#g14");
+  });
+
+  it("moves through transform by default under T6", () => {
+    const session = new Session({ moveDefaultsToTransform: true });
+    session.run("init; create rect r 0 0 10 10; move r 5 0");
+    const id = session.document.find("r");
+    expect(id).toBeDefined();
+    const node = session.document.node(id ?? -1);
+    expect(node).toBeDefined();
+    if (node instanceof Rect) {
+      expect(node.transformAttr.transform.toDisplayText()).toBe(
+        "translate(5 0)",
+      );
+    }
   });
 });

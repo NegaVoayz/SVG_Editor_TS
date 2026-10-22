@@ -1,11 +1,13 @@
 import {
   Group,
   PlainTextNode,
+  Polygon,
   Rect,
   TextCommon,
   TextWrapper,
 } from "../model/node/index.js";
 import { parseColor } from "../model/values/Color.js";
+import { Coordinate } from "../model/values/Coordinate.js";
 import { IdentityAttr } from "../model/values/IdentityAttr.js";
 import { Length } from "../model/values/Length.js";
 import type { LengthPercentage } from "../model/values/LengthPercentage.js";
@@ -185,6 +187,65 @@ export class GroupProvider extends ShapeProvider {
   }
 }
 
+export class PolygonProvider extends ShapeProvider {
+  public readonly kind = "polygon";
+
+  public create(
+    id: string,
+    args: readonly string[],
+    parent: NodeRef,
+    parentNamed: boolean,
+  ): CreateIntent {
+    const coordinates = [...args];
+    const fill =
+      coordinates.length % 2 === 1
+        ? optionalColor(coordinates.pop(), "fill")
+        : null;
+    if (coordinates.length < 4 || coordinates.length % 2 !== 0) {
+      throw new ProviderParseError(
+        "create polygon takes '<id> <x> <y> <x> <y> ... [fill] [in <gid>]'",
+      );
+    }
+    const points: Coordinate[] = [];
+    for (let index = 0; index < coordinates.length; index += 2) {
+      points.push(
+        new Coordinate(
+          length(coordinates[index], "length"),
+          length(coordinates[index + 1], "length"),
+        ),
+      );
+    }
+    return new PolygonIntent(
+      id,
+      points,
+      fill,
+      parent,
+      parentNamed,
+    );
+  }
+}
+
+export class PolygonIntent extends CreateIntent {
+  public constructor(
+    id: string,
+    public readonly points: readonly Coordinate[],
+    public readonly fill: ReturnType<typeof optionalColor>,
+    parent: NodeRef,
+    parentNamed: boolean,
+  ) {
+    super(id, parent, parentNamed);
+  }
+
+  public build(): ReturnType<CreateIntent["build"]> {
+    return new Polygon(
+      this.points,
+      new IdentityAttr(this.id),
+      new PaintAttr(this.fill),
+      undefined,
+    );
+  }
+}
+
 export class CreateBox extends ShapeProvider {
   public readonly kind = "box";
 
@@ -266,6 +327,7 @@ export const BUILTIN_PROVIDERS: readonly ShapeProvider[] = [
   new LineProvider(),
   new TextProvider(),
   new GroupProvider(),
+  new PolygonProvider(),
   new CreateBox(),
 ];
 

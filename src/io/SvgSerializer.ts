@@ -7,6 +7,7 @@ import type {
   Group,
   Line,
   Node,
+  Polygon,
   Rect,
   Switch,
   Symbol as SvgSymbol,
@@ -110,6 +111,16 @@ export class SvgSerializer extends NodeVisitor<void> {
         attribute("x2", node.x2.toSvgText()),
         attribute("y2", node.y2.toSvgText()),
       ].join(" "),
+    );
+  }
+
+  public visitPolygon(node: Polygon): void {
+    this.writeElement(
+      node,
+      attribute(
+        "points",
+        node.points.map((point) => point.toSvgText()).join(" "),
+      ),
     );
   }
 
@@ -223,6 +234,12 @@ export class SvgSerializer extends NodeVisitor<void> {
       this.output += ` ${attribute(
         "stroke-width",
         node.paint.strokeWidth.toSvgText(),
+      )}`;
+    }
+    if (node.paint.opacity !== null) {
+      this.output += ` ${attribute(
+        "opacity",
+        String(node.paint.opacity),
       )}`;
     }
     const transform = node.transformAttr.transform.toSvgText();

@@ -5,6 +5,7 @@ import {
   Group,
   Line,
   PlainTextNode,
+  Polygon,
   Rect,
   Svg,
   Switch,
@@ -18,12 +19,13 @@ import {
 import { ElementNode } from "../model/node/ElementNode.js";
 import type { Node } from "../model/node/index.js";
 import { IdentityAttr } from "../model/values/IdentityAttr.js";
+import { Coordinate } from "../model/values/Coordinate.js";
 import { Length } from "../model/values/Length.js";
 import type { LengthPercentage } from "../model/values/LengthPercentage.js";
 import { LengthUnit } from "../model/values/LengthUnit.js";
 import { PaintAttr } from "../model/values/PaintAttr.js";
 import { parsePaint } from "../model/values/Color.js";
-import { parseLength } from "../model/values/parseValues.js";
+import { parseLength, parseNumber } from "../model/values/parseValues.js";
 import { reservedSvgId, validSvgId } from "../model/values/svgId.js";
 import { Transform } from "../model/values/Transform.js";
 import { TransformAttr } from "../model/values/TransformAttr.js";
@@ -37,6 +39,7 @@ const COMMON_ATTRIBUTES = new Set([
   "fill",
   "stroke",
   "stroke-width",
+  "opacity",
   "transform",
 ]);
 
@@ -50,6 +53,7 @@ const ELEMENT_ATTRIBUTES: Readonly<Record<string, ReadonlySet<string>>> = {
   circle: new Set(["cx", "cy", "r"]),
   ellipse: new Set(["cx", "cy", "rx", "ry"]),
   line: new Set(["x1", "y1", "x2", "y2"]),
+  polygon: new Set(["points"]),
   text: new Set(["x", "y", "dx", "dy", "text-anchor", "font-size"]),
   tspan: new Set(["x", "y", "dx", "dy", "text-anchor", "font-size"]),
   textPath: new Set([
@@ -153,6 +157,14 @@ function commonNode(element: XmlElement): {
   if (strokeWidth !== null) {
     requireNonnegative(element, "stroke-width", strokeWidth);
   }
+  const opacityText = element.attribute("opacity");
+  const opacity = opacityText === undefined ? null : parseNumber(opacityText);
+  if (
+    opacityText !== undefined &&
+    (opacity === null || opacity < 0 || opacity > 1)
+  ) {
+    fail(`invalid opacity on <${element.localName}>: ${opacityText}`);
+  }
   const transformText = element.attribute("transform");
   const transform =
     transformText === undefined ? Transform.identity() : Transform.parse(transformText);
@@ -164,7 +176,7 @@ function commonNode(element: XmlElement): {
       element.attribute("id") ?? "",
       element.attribute("class") ?? "",
     ),
-    paint: new PaintAttr(fill, stroke, strokeWidth),
+    paint: new PaintAttr(fill, stroke, strokeWidth, opacity),
     transformAttr: new TransformAttr(transform),
   };
 }
@@ -209,6 +221,27 @@ function parseViewBox(element: XmlElement): ViewBox | null {
     fail(`invalid viewBox: ${text}`);
   }
   return box;
+}
+
+function polygonPoints(element: XmlElement): Coordinate[] {
+  const text = element.attribute("points");
+  if (text === undefined) {
+    return [];
+  }
+  const words = text.trim().split(/[\s,]+/u);
+  if (words.length % 2 !== 0) {
+    fail(`invalid points on <polygon>: ${text}`);
+  }
+  const points: Coordinate[] = [];
+  for (let index = 0; index < words.length; index += 2) {
+    const x = parseLength(words[index] ?? "");
+    const y = parseLength(words[index + 1] ?? "");
+    if (x === null || y === null) {
+      fail(`invalid points on <polygon>: ${text}`);
+    }
+    points.push(new Coordinate(x, y));
+  }
+  return points;
 }
 
 function validateAttributes(element: XmlElement): void {
@@ -323,6 +356,14 @@ function rawElement(element: XmlElement, isRoot: boolean): ParsedNode {
         lengthOrZero(element, "y1"),
         lengthOrZero(element, "x2"),
         lengthOrZero(element, "y2"),
+        common.identity,
+        common.paint,
+        common.transformAttr,
+      );
+      break;
+    case "polygon":
+      node = new Polygon(
+        polygonPoints(element),
         common.identity,
         common.paint,
         common.transformAttr,

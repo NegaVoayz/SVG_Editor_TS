@@ -4,6 +4,7 @@ import type { Ellipse } from "../node/Ellipse.js";
 import type { Group } from "../node/Group.js";
 import type { Line } from "../node/Line.js";
 import type { PlainTextNode } from "../node/PlainTextNode.js";
+import type { Polygon } from "../node/Polygon.js";
 import type { Rect } from "../node/Rect.js";
 import type { Svg } from "../node/Svg.js";
 import type { Switch } from "../node/Switch.js";
@@ -20,6 +21,8 @@ export abstract class NodeVisitor<Result> {
   public abstract visitEllipse(node: Ellipse): Result;
 
   public abstract visitLine(node: Line): Result;
+
+  public abstract visitPolygon(node: Polygon): Result;
 
   public abstract visitGroup(node: Group): Result;
 

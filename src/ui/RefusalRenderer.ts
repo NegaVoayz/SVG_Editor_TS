@@ -39,8 +39,14 @@ export class RefusalRenderer {
     if (value instanceof refusal.NonFiniteValue) {
       return `error: ${quoteIfNeeded(value.name)} must be a finite number`;
     }
+    if (value instanceof refusal.OpacityOutOfRange) {
+      return "error: opacity must be between 0 and 1";
+    }
     if (value instanceof refusal.CannotUngroupNonContainer) {
       return `error: cannot ungroup a shape or text node: ${value.node.display}`;
+    }
+    if (value instanceof refusal.CannotUngroupCompositeShape) {
+      return `error: cannot ungroup composite shape: ${value.node.display}`;
     }
     if (value instanceof refusal.CannotGroupIntoOwnDescendant) {
       return `error: cannot group a container into its own descendant: ${value.node.display}`;

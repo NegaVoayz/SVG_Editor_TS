@@ -3,6 +3,7 @@ export * from "./NodeRef.js";
 export * from "./Outcome.js";
 export * from "./attr/AttributeCommand.js";
 export * from "./attr/SetCommands.js";
+export * from "./attr/WithAttributes.js";
 export * from "./cmd/ChangeCommands.js";
 export * from "./cmd/Command.js";
 export type * from "./cmd/CommandContext.js";

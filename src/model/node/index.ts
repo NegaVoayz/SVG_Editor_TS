@@ -7,6 +7,7 @@ export * from "./Group.js";
 export * from "./Line.js";
 export * from "./Node.js";
 export * from "./PlainTextNode.js";
+export * from "./Polygon.js";
 export * from "./Rect.js";
 export * from "./ShapeNode.js";
 export * from "./Svg.js";

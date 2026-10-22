@@ -4,6 +4,7 @@ import {
   Group,
   Line,
   PlainTextNode,
+  Polygon,
   Rect,
   Svg,
   TextNode,
@@ -103,6 +104,10 @@ export function nodeDetails(node: Node, text = ""): readonly string[] {
     details.push(
       `x1=${node.x1.toDisplayText()} y1=${node.y1.toDisplayText()} x2=${node.x2.toDisplayText()} y2=${node.y2.toDisplayText()}`,
     );
+  } else if (node instanceof Polygon) {
+    details.push(
+      `points=${node.points.map((point) => point.toDisplayText()).join(" ")}`,
+    );
   } else if (node instanceof Svg) {
     let canvas = "";
     if (
@@ -144,6 +149,9 @@ export function nodeDetails(node: Node, text = ""): readonly string[] {
   }
   if (node.paint.strokeWidth !== null) {
     details.push(`stroke-width=${node.paint.strokeWidth.toDisplayText()}`);
+  }
+  if (node.paint.opacity !== null) {
+    details.push(`opacity=${String(node.paint.opacity)}`);
   }
   const transform = node.transformAttr.transform.toDisplayText();
   if (transform !== "") {

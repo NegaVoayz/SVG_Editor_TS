@@ -13,6 +13,7 @@ import { TreeStore } from "../store/TreeStore.js";
 import type { CommitId, Vid } from "../store/hiveState.js";
 import type { LengthPercentage } from "../values/LengthPercentage.js";
 import type { Transform } from "../values/Transform.js";
+import { UnitOfWork } from "../uow/UnitOfWork.js";
 import { DocumentInfo } from "./DocumentInfo.js";
 
 export type OpenStatus =
@@ -88,8 +89,8 @@ export class Document {
     return this.store.directText(id);
   }
 
-  public transaction(): DocumentTransaction {
-    return new DocumentTransaction(this.store);
+  public transaction(): UnitOfWork {
+    return new UnitOfWork(new DocumentTransaction(this.store));
   }
 
   public canUndo(): boolean {

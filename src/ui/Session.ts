@@ -10,6 +10,7 @@ import {
   IntentParser,
   ParseError,
   type Request,
+  Zoom,
 } from "./Parser.js";
 import { Rendering } from "./Rendering.js";
 import { Tokenizer } from "./Tokenizer.js";
@@ -22,10 +23,11 @@ export function usage(): string {
     "           show <id>              one element's attributes and parent",
     "           history [n]            edits around HEAD, capped at 20 by default",
     "           canvas                 the document's size, which is the root's",
+    "           zoom <factor>          display zoom only; document and history stay unchanged",
     "           help                   this list",
     "           exit | quit            leave the editor",
     "  change   create <kind> <id> [values] [in <gid>]",
-    "             rect | circle | ellipse | line | text | g | box",
+    "             rect | circle | ellipse | line | polygon | text | g | box",
     "           delete <id>            the node and its descendants",
     "           move <id> <dx> <dy> [transform|params] [cascade|restrict]",
     "           scale <id> <factor> [transform|params] [cascade|restrict]",
@@ -49,6 +51,11 @@ export interface SessionResult {
   readonly exited: boolean;
 }
 
+export interface SessionOptions {
+  readonly historyLimit?: number;
+  readonly moveDefaultsToTransform?: boolean;
+}
+
 interface InstructionResult {
   readonly output: string;
   readonly ok: boolean;
@@ -57,10 +64,31 @@ interface InstructionResult {
 
 export class Session {
   public readonly document = new Document();
-  public readonly editor = new Editor(this.document);
-  public readonly planner = new Planner(this.document, this.editor);
-  private readonly parser = new IntentParser(new ShapeRegistry());
+  public readonly editor: Editor;
+  public readonly planner: Planner;
+  private readonly parser: IntentParser;
   private readonly rendering = new Rendering();
+  private zoomFactor = 1;
+
+  public constructor(options: SessionOptions = {}) {
+    const configured =
+      options.historyLimit ??
+      Number(process.env["SVG_EDITOR_HISTORY_LIMIT"] ?? "20");
+    this.editor = new Editor(
+      this.document,
+      Number.isInteger(configured) && configured >= 0 ? configured : 20,
+    );
+    this.planner = new Planner(this.document, this.editor);
+    this.parser = new IntentParser(
+      new ShapeRegistry(),
+      options.moveDefaultsToTransform ??
+        process.env["SVG_EDITOR_MOVE_DEFAULT"] !== "params",
+    );
+  }
+
+  public zoom(): number {
+    return this.zoomFactor;
+  }
 
   public run(instructions: string): SessionResult {
     let output = "";
@@ -111,6 +139,14 @@ export class Session {
     }
     if (request instanceof Comment) {
       return { output: "", ok: true, exited: false };
+    }
+    if (request instanceof Zoom) {
+      this.zoomFactor = request.factor;
+      return {
+        output: `zoom ${String(request.factor)}x`,
+        ok: true,
+        exited: false,
+      };
     }
     return this.runCommand(request);
   }

@@ -1,4 +1,5 @@
 export * from "./Color.js";
+export * from "./Coordinate.js";
 export * from "./geometry.js";
 export * from "./IdentityAttr.js";
 export * from "./Length.js";

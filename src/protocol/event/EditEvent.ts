@@ -27,6 +27,35 @@ export class Created extends EditEvent {
     super();
   }
 }
+export class CompositeCreated extends EditEvent {
+  public readonly eventName = "composite-created";
+  public constructor(
+    public readonly node: NodeName,
+    public readonly children: readonly NodeName[],
+  ) {
+    super();
+  }
+}
+export class BoxFillPropagated extends EditEvent {
+  public readonly eventName = "box-fill-propagated";
+  public constructor(
+    public readonly node: NodeName,
+    public readonly child: NodeName,
+    public readonly value: string,
+  ) {
+    super();
+  }
+}
+export class BoxLabelSet extends EditEvent {
+  public readonly eventName = "box-label-set";
+  public constructor(
+    public readonly node: NodeName,
+    public readonly content: string,
+    public readonly previousContent = "",
+  ) {
+    super();
+  }
+}
 export class Deleted extends EditEvent {
   public readonly eventName = "deleted";
   public constructor(

@@ -451,6 +451,21 @@ export class SetStrokeWidth extends AttributeCommand {
   }
 }
 
+export class SetOpacity extends AttributeCommand {
+  public readonly attributeName = "opacity";
+  public constructor(public readonly value: number) {
+    super();
+  }
+
+  public applyTo(node: ElementNode): ElementNode | null {
+    return node.withAttributes(
+      node.identity,
+      node.paint.withOpacity(this.value),
+      node.transformAttr,
+    );
+  }
+}
+
 export class SetWidth extends AttributeCommand {
   public readonly attributeName = "width";
   public constructor(public readonly value: LengthPercentage) {

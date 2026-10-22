@@ -73,8 +73,17 @@ export class NonFiniteValue extends Refusal {
     super();
   }
 }
+export class OpacityOutOfRange extends Refusal {
+  public readonly reason = "opacity-out-of-range";
+}
 export class CannotUngroupNonContainer extends Refusal {
   public readonly reason = "cannot-ungroup-non-container";
+  public constructor(public readonly node: NodeRef) {
+    super();
+  }
+}
+export class CannotUngroupCompositeShape extends Refusal {
+  public readonly reason = "cannot-ungroup-composite-shape";
   public constructor(public readonly node: NodeRef) {
     super();
   }

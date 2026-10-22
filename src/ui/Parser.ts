@@ -18,6 +18,7 @@ import {
   SetH,
   SetHeight,
   SetHref,
+  SetOpacity,
   SetR,
   SetRx,
   SetRy,
@@ -87,7 +88,12 @@ export class Comment {
   public readonly kind = "comment";
 }
 
-export type Request = Command | Help | Exit | Comment | ParseError;
+export class Zoom {
+  public readonly kind = "zoom";
+  public constructor(public readonly factor: number) {}
+}
+
+export type Request = Command | Help | Exit | Comment | Zoom | ParseError;
 
 class Selectors {
   public constructor(
@@ -213,7 +219,10 @@ function selectors(
 export class IntentParser {
   private readonly tokenizer = new Tokenizer();
 
-  public constructor(private readonly shapes: ShapeRegistry) {}
+  public constructor(
+    private readonly shapes: ShapeRegistry,
+    private readonly moveDefaultsToTransform = true,
+  ) {}
 
   public parse(line: string): Request {
     try {
@@ -262,6 +271,14 @@ export class IntentParser {
             ? null
             : nonnegativeInteger(words[1], "a history count"),
         );
+      case "zoom": {
+        expectCount(words, 2, "zoom takes '<factor>'");
+        const factor = numberOf(words[1], "a zoom factor");
+        if (factor <= 0) {
+          throw new ParserFailure("zoom factor must be positive");
+        }
+        return new Zoom(factor);
+      }
       case "canvas":
         return this.canvas(words);
       case "create":
@@ -283,7 +300,9 @@ export class IntentParser {
           referenceOf(words[1] ?? ""),
           lengthOf(words[2]),
           lengthOf(words[3]),
-          chosen.target,
+          words.length === 4 && this.moveDefaultsToTransform
+            ? EditTarget.Transform
+            : chosen.target,
           chosen.scope,
         );
       }
@@ -450,6 +469,13 @@ export class IntentParser {
       case "dx": return new SetDx(lengthOf(value));
       case "dy": return new SetDy(lengthOf(value));
       case "stroke-width": return new SetStrokeWidth(lengthOf(value));
+      case "opacity": {
+        const opacity = parseNumber(value);
+        if (opacity === null) {
+          throw new ParserFailure(`cannot read '${value}' as an opacity`);
+        }
+        return new SetOpacity(opacity);
+      }
       case "width": return new SetWidth(lengthOf(value));
       case "height": return new SetHeight(lengthOf(value));
       case "startOffset": return new SetStartOffset(lengthOf(value));

@@ -6,6 +6,7 @@ import {
   Group,
   Line,
   PlainTextNode,
+  Polygon,
   Rect,
   Svg,
   TextCommon,
@@ -24,6 +25,7 @@ import { sumLengths } from "../model/values/geometry.js";
 import { reservedSvgId, validSvgId } from "../model/values/svgId.js";
 import { Transform } from "../model/values/Transform.js";
 import { ViewBox } from "../model/values/ViewBox.js";
+import { Coordinate } from "../model/values/Coordinate.js";
 import type { AttributeCommand } from "../protocol/attr/AttributeCommand.js";
 import type {
   AddTo,
@@ -45,9 +47,12 @@ import {
   AlreadyBack,
   AlreadyFront,
   AttributeSet,
+  BoxFillPropagated,
+  BoxLabelSet,
   CanvasSet,
   CheckedOut,
   ContentSet,
+  CompositeCreated,
   Created,
   Deleted,
   Grouped,
@@ -72,6 +77,7 @@ import {
   CannotGroupIntoOwnDescendant,
   CannotGroupTopLevelContainer,
   CannotUngroupNonContainer,
+  CannotUngroupCompositeShape,
   CannotUngroupTopLevelContainer,
   DuplicateGroupMember,
   DuplicateId,
@@ -89,6 +95,7 @@ import {
   NotContainer,
   NothingToRedo,
   NothingToUndo,
+  OpacityOutOfRange,
   ReservedId,
   RootCannotBeErased,
   RootHasNoSiblings,
@@ -188,6 +195,23 @@ function translatedParams(
       ? null
       : new Line(x1, y1, x2, y2, node.identity, node.paint, node.transformAttr);
   }
+  if (node instanceof Polygon) {
+    const points: Coordinate[] = [];
+    for (const point of node.points) {
+      const x = moveX(point.x);
+      const y = moveY(point.y);
+      if (x === null || y === null) {
+        return null;
+      }
+      points.push(new Coordinate(x, y));
+    }
+    return new Polygon(
+      points,
+      node.identity,
+      node.paint,
+      node.transformAttr,
+    );
+  }
   if (node instanceof TextNode) {
     const common = node.common;
     const x = common.x === null ? null : moveX(common.x);
@@ -251,6 +275,7 @@ function scaledParams(node: Node, factor: number): Node | null {
     node instanceof Circle ||
     node instanceof Ellipse ||
     node instanceof Line ||
+    node instanceof Polygon ||
     node instanceof TextNode
   ) {
     const source = node;
@@ -297,6 +322,14 @@ function scaledParams(node: Node, factor: number): Node | null {
         source.transformAttr,
       );
     }
+    if (source instanceof Polygon) {
+      return new Polygon(
+        source.points.map((point) => point.scaled(factor)),
+        source.identity,
+        source.paint,
+        source.transformAttr,
+      );
+    }
     const common = source.common;
     return textWithCommon(
       source,
@@ -317,7 +350,10 @@ function carriesTransform(node: Node): boolean {
 export class Editor {
   private readonly historyEvents = new Map<number, EditEvent>();
 
-  public constructor(private readonly document: Document) {}
+  public constructor(
+    private readonly document: Document,
+    private readonly defaultHistoryLimit = 20,
+  ) {}
 
   public create(command: CreateIntent): Outcome {
     if (!this.document.hasDocument()) {
@@ -351,13 +387,21 @@ export class Editor {
     const edit = this.document.transaction();
     try {
       const id = edit.appendChild(parent, command.build());
-      this.appendCreatedChildren(edit, id, command.children());
+      const children = command.children();
+      this.appendCreatedChildren(edit, id, children);
       edit.commit();
-      const event = new Created(
-        this.nodeName(id),
-        this.nodeName(parent),
-        command.parentNamed || parentReference(command.parent),
-      );
+      const event =
+        children.length > 0 &&
+        children.every((child) => child.node instanceof ElementNode)
+          ? new CompositeCreated(
+              this.nodeName(id),
+              children.map((child) => this.nameOfNode(child.node)),
+            )
+          : new Created(
+              this.nodeName(id),
+              this.nodeName(parent),
+              command.parentNamed || parentReference(command.parent),
+            );
       this.record(event);
       return Outcome.happened(Kind.Change, event);
     } catch (error: unknown) {
@@ -575,6 +619,12 @@ export class Editor {
         new CannotUngroupNonContainer(command.node),
       );
     }
+    if (node instanceof Group && node.dataKind !== null) {
+      return Outcome.refused(
+        Kind.Change,
+        new CannotUngroupCompositeShape(command.node),
+      );
+    }
     const parent = this.document.parent(id);
     if (parent === undefined) {
       return Outcome.refused(
@@ -644,6 +694,9 @@ export class Editor {
       return Outcome.refused(Kind.Change, new InternalError());
     }
     if (command.contentValue !== null) {
+      if (source instanceof Group && source.dataKind === "box") {
+        return this.setBoxLabel(id, command.contentValue);
+      }
       return this.setContent(id, source, command);
     }
     if (!(source instanceof ElementNode)) {
@@ -653,6 +706,12 @@ export class Editor {
       );
     }
     const lengthValue = this.lengthValueOf(command);
+    if (source instanceof Group && source.dataKind === "box") {
+      const candidate = (command as unknown as { value?: unknown }).value;
+      if (command.attributeName === "fill" && candidate instanceof Paint) {
+        return this.setBoxFill(id, candidate);
+      }
+    }
     if (
       lengthValue !== null &&
       NONNEGATIVE_ATTRIBUTES.has(command.attributeName) &&
@@ -662,6 +721,16 @@ export class Editor {
         Kind.Change,
         new NegativeDimension(command.attributeName),
       );
+    }
+    const opacity =
+      command.attributeName === "opacity"
+        ? (command as unknown as { value?: unknown }).value
+        : undefined;
+    if (
+      typeof opacity === "number" &&
+      (!Number.isFinite(opacity) || opacity < 0 || opacity > 1)
+    ) {
+      return Outcome.refused(Kind.Change, new OpacityOutOfRange());
     }
     if (
       lengthValue !== null &&
@@ -819,10 +888,11 @@ export class Editor {
         entries.push(new HistoryEntry(commit, event, position));
       }
     }
+    const cap = Math.max(0, limit ?? this.defaultHistoryLimit);
     const selected =
-      limit === null
+      entries.length <= cap
         ? entries
-        : entries.slice(Math.max(0, entries.length - limit));
+        : entries.slice(Math.max(0, entries.length - cap));
     return {
       baseline: this.document.baselineCommit(),
       head: this.document.commitId(),
@@ -1087,6 +1157,78 @@ export class Editor {
     }
   }
 
+  private setBoxFill(boxId: Vid, fill: Paint): Outcome {
+    const box = this.document.node(boxId);
+    if (!(box instanceof Group) || box.dataKind !== "box") {
+      return Outcome.refused(Kind.Change, new InternalError());
+    }
+    const rectId = this.document.find(`${box.id}-rect`);
+    if (rectId === undefined) {
+      return Outcome.refused(Kind.Change, new InternalError());
+    }
+    const rect = this.document.node(rectId);
+    if (!(rect instanceof ElementNode)) {
+      return Outcome.refused(Kind.Change, new InternalError());
+    }
+    const replacement = rect.withAttributes(
+      rect.identity,
+      rect.paint.withFill(fill),
+      rect.transformAttr,
+    );
+    const edit = this.document.transaction();
+    try {
+      edit.update(rectId, replacement);
+      edit.commit();
+      const event = new BoxFillPropagated(
+        this.nodeName(boxId),
+        this.nodeName(rectId),
+        fill.toSvgText(),
+      );
+      this.record(event);
+      return Outcome.happened(Kind.Change, event);
+    } catch (error: unknown) {
+      edit.rollback();
+      return Outcome.refused(Kind.Change, new InternalError(String(error)));
+    }
+  }
+
+  private setBoxLabel(boxId: Vid, content: string): Outcome {
+    const box = this.document.node(boxId);
+    if (!(box instanceof Group) || box.dataKind !== "box") {
+      return Outcome.refused(Kind.Change, new InternalError());
+    }
+    const labelId = this.document.find(`${box.id}-label`);
+    if (labelId === undefined) {
+      return Outcome.refused(Kind.Change, new InternalError());
+    }
+    const textChild = this.document
+      .children(labelId)
+      .find((child) => this.document.node(child) instanceof PlainTextNode);
+    const previous =
+      textChild === undefined
+        ? ""
+        : (this.document.node(textChild) as PlainTextNode).content;
+    const edit = this.document.transaction();
+    try {
+      if (textChild === undefined) {
+        edit.appendChild(labelId, new PlainTextNode(content));
+      } else {
+        edit.update(textChild, new PlainTextNode(content));
+      }
+      edit.commit();
+      const event = new BoxLabelSet(
+        this.nodeName(boxId),
+        content,
+        previous,
+      );
+      this.record(event);
+      return Outcome.happened(Kind.Change, event);
+    } catch (error: unknown) {
+      edit.rollback();
+      return Outcome.refused(Kind.Change, new InternalError(String(error)));
+    }
+  }
+
   private createDimensions(command: CreateIntent): Refusal | null {
     const values: [string, LengthPercentage, boolean][] = [];
     if (command instanceof CreateRectValue) {
@@ -1141,6 +1283,9 @@ export class Editor {
     if (node instanceof Line) {
       return node.x1;
     }
+    if (node instanceof Polygon) {
+      return node.points[0]?.x ?? null;
+    }
     if (node instanceof TextNode) {
       return node.common.x;
     }
@@ -1187,9 +1332,20 @@ export class Editor {
   private nodeName(id: Vid): NodeName {
     const node = this.document.node(id);
     if (node instanceof ElementNode) {
-      return new NodeName(node.elementName, node.id);
+      return new NodeName(
+        node instanceof Group && node.dataKind !== null
+          ? node.dataKind
+          : node.elementName,
+        node.id,
+      );
     }
     return new NodeName("#text", `#${String(id)}`);
+  }
+
+  private nameOfNode(node: Node): NodeName {
+    return node instanceof ElementNode
+      ? new NodeName(node.elementName, node.id)
+      : new NodeName("#text", "");
   }
 
   private inside(candidate: Vid, ancestor: Vid): boolean {

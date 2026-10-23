@@ -13,11 +13,37 @@ export class NodeName {
   }
 }
 
-export abstract class EditEvent {
-  public abstract readonly eventName: string;
+export type EditEventName =
+  | "created"
+  | "composite-created"
+  | "box-fill-propagated"
+  | "box-label-set"
+  | "deleted"
+  | "moved"
+  | "scaled"
+  | "added-to"
+  | "front"
+  | "back"
+  | "grouped"
+  | "ungrouped"
+  | "attribute-set"
+  | "content-set"
+  | "canvas-set"
+  | "nothing-moved"
+  | "already-front"
+  | "already-back"
+  | "initialized"
+  | "opened"
+  | "saved"
+  | "undone"
+  | "redone"
+  | "checked-out";
+
+export abstract class EditEventBase {
+  public abstract readonly eventName: EditEventName;
 }
 
-export class Created extends EditEvent {
+export class Created extends EditEventBase {
   public readonly eventName = "created";
   public constructor(
     public readonly node: NodeName,
@@ -27,7 +53,7 @@ export class Created extends EditEvent {
     super();
   }
 }
-export class CompositeCreated extends EditEvent {
+export class CompositeCreated extends EditEventBase {
   public readonly eventName = "composite-created";
   public constructor(
     public readonly node: NodeName,
@@ -36,7 +62,7 @@ export class CompositeCreated extends EditEvent {
     super();
   }
 }
-export class BoxFillPropagated extends EditEvent {
+export class BoxFillPropagated extends EditEventBase {
   public readonly eventName = "box-fill-propagated";
   public constructor(
     public readonly node: NodeName,
@@ -46,7 +72,7 @@ export class BoxFillPropagated extends EditEvent {
     super();
   }
 }
-export class BoxLabelSet extends EditEvent {
+export class BoxLabelSet extends EditEventBase {
   public readonly eventName = "box-label-set";
   public constructor(
     public readonly node: NodeName,
@@ -56,7 +82,7 @@ export class BoxLabelSet extends EditEvent {
     super();
   }
 }
-export class Deleted extends EditEvent {
+export class Deleted extends EditEventBase {
   public readonly eventName = "deleted";
   public constructor(
     public readonly node: NodeName,
@@ -65,7 +91,7 @@ export class Deleted extends EditEvent {
     super();
   }
 }
-export class Moved extends EditEvent {
+export class Moved extends EditEventBase {
   public readonly eventName = "moved";
   public constructor(
     public readonly node: NodeName,
@@ -77,7 +103,7 @@ export class Moved extends EditEvent {
     super();
   }
 }
-export class Scaled extends EditEvent {
+export class Scaled extends EditEventBase {
   public readonly eventName = "scaled";
   public constructor(
     public readonly node: NodeName,
@@ -88,7 +114,7 @@ export class Scaled extends EditEvent {
     super();
   }
 }
-export class AddedTo extends EditEvent {
+export class AddedTo extends EditEventBase {
   public readonly eventName = "added-to";
   public constructor(
     public readonly node: NodeName,
@@ -97,7 +123,7 @@ export class AddedTo extends EditEvent {
     super();
   }
 }
-export class MovedToFront extends EditEvent {
+export class MovedToFront extends EditEventBase {
   public readonly eventName = "front";
   public constructor(
     public readonly node: NodeName,
@@ -106,7 +132,7 @@ export class MovedToFront extends EditEvent {
     super();
   }
 }
-export class MovedToBack extends EditEvent {
+export class MovedToBack extends EditEventBase {
   public readonly eventName = "back";
   public constructor(
     public readonly node: NodeName,
@@ -115,7 +141,7 @@ export class MovedToBack extends EditEvent {
     super();
   }
 }
-export class Grouped extends EditEvent {
+export class Grouped extends EditEventBase {
   public readonly eventName = "grouped";
   public constructor(
     public readonly node: NodeName,
@@ -125,7 +151,7 @@ export class Grouped extends EditEvent {
     super();
   }
 }
-export class Ungrouped extends EditEvent {
+export class Ungrouped extends EditEventBase {
   public readonly eventName = "ungrouped";
   public constructor(
     public readonly erased: NodeName,
@@ -135,7 +161,7 @@ export class Ungrouped extends EditEvent {
     super();
   }
 }
-export class AttributeSet extends EditEvent {
+export class AttributeSet extends EditEventBase {
   public readonly eventName = "attribute-set";
   public constructor(
     public readonly node: NodeName,
@@ -145,7 +171,7 @@ export class AttributeSet extends EditEvent {
     super();
   }
 }
-export class ContentSet extends EditEvent {
+export class ContentSet extends EditEventBase {
   public readonly eventName = "content-set";
   public constructor(
     public readonly node: NodeName,
@@ -154,7 +180,7 @@ export class ContentSet extends EditEvent {
     super();
   }
 }
-export class CanvasSet extends EditEvent {
+export class CanvasSet extends EditEventBase {
   public readonly eventName = "canvas-set";
   public constructor(
     public readonly width: LengthPercentage | null,
@@ -163,22 +189,22 @@ export class CanvasSet extends EditEvent {
     super();
   }
 }
-export class NothingMoved extends EditEvent {
+export class NothingMoved extends EditEventBase {
   public readonly eventName = "nothing-moved";
 }
-export class AlreadyFront extends EditEvent {
+export class AlreadyFront extends EditEventBase {
   public readonly eventName = "already-front";
   public constructor(public readonly node: NodeName) {
     super();
   }
 }
-export class AlreadyBack extends EditEvent {
+export class AlreadyBack extends EditEventBase {
   public readonly eventName = "already-back";
   public constructor(public readonly node: NodeName) {
     super();
   }
 }
-export class Initialized extends EditEvent {
+export class Initialized extends EditEventBase {
   public readonly eventName = "initialized";
   public constructor(
     public readonly width: LengthPercentage | null,
@@ -187,7 +213,7 @@ export class Initialized extends EditEvent {
     super();
   }
 }
-export class Opened extends EditEvent {
+export class Opened extends EditEventBase {
   public readonly eventName = "opened";
   public constructor(
     public readonly path: string,
@@ -205,7 +231,7 @@ export class AssignedIdName {
     public readonly originalId: string,
   ) {}
 }
-export class Saved extends EditEvent {
+export class Saved extends EditEventBase {
   public readonly eventName = "saved";
   public constructor(
     public readonly path: string,
@@ -214,7 +240,7 @@ export class Saved extends EditEvent {
     super();
   }
 }
-export class Undone extends EditEvent {
+export class Undone extends EditEventBase {
   public readonly eventName = "undone";
   public constructor(
     public readonly position: number,
@@ -225,7 +251,7 @@ export class Undone extends EditEvent {
     super();
   }
 }
-export class Redone extends EditEvent {
+export class Redone extends EditEventBase {
   public readonly eventName = "redone";
   public constructor(
     public readonly position: number,
@@ -236,7 +262,7 @@ export class Redone extends EditEvent {
     super();
   }
 }
-export class CheckedOut extends EditEvent {
+export class CheckedOut extends EditEventBase {
   public readonly eventName = "checked-out";
   public constructor(
     public readonly position: number,
@@ -249,4 +275,30 @@ export class CheckedOut extends EditEvent {
     super();
   }
 }
+
+export type EditEvent =
+  | Created
+  | CompositeCreated
+  | BoxFillPropagated
+  | BoxLabelSet
+  | Deleted
+  | Moved
+  | Scaled
+  | AddedTo
+  | MovedToFront
+  | MovedToBack
+  | Grouped
+  | Ungrouped
+  | AttributeSet
+  | ContentSet
+  | CanvasSet
+  | NothingMoved
+  | AlreadyFront
+  | AlreadyBack
+  | Initialized
+  | Opened
+  | Saved
+  | Undone
+  | Redone
+  | CheckedOut;
 

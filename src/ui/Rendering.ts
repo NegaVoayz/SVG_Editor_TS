@@ -1,5 +1,5 @@
 import type { Outcome } from "../protocol/Outcome.js";
-import { CheckedOut, EditEvent } from "../protocol/event/EditEvent.js";
+import type { EditEvent } from "../protocol/event/EditEvent.js";
 import type { Refusal } from "../protocol/refusal/Refusal.js";
 import type { View } from "../protocol/view/View.js";
 import { EventRenderer } from "./EventRenderer.js";
@@ -24,9 +24,6 @@ export class Rendering {
   }
 
   public event(event: EditEvent): string {
-    if (event instanceof CheckedOut) {
-      return this.events.render(event);
-    }
     return this.events.render(event);
   }
 
@@ -38,9 +35,12 @@ export class Rendering {
     if (!outcome.ok()) {
       return this.refusal(outcome.refusal());
     }
-    return outcome.result instanceof EditEvent
-      ? this.event(outcome.event())
-      : this.view(outcome.view());
+    if ("reason" in outcome.result) {
+      return this.refusal(outcome.result);
+    }
+    return "eventName" in outcome.result
+      ? this.event(outcome.result)
+      : this.view(outcome.result);
   }
 }
 

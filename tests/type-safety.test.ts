@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   Command,
   Document,
-  EditEvent,
+  EditEventBase,
   Group,
   Hive,
   Length,
@@ -84,6 +84,6 @@ describe("static and history invariants", () => {
 
   it("keeps edit events in the typed protocol hierarchy", () => {
     const event = new Undone(0, 1, null, 1);
-    expect(event).toBeInstanceOf(EditEvent);
+    expect(event).toBeInstanceOf(EditEventBase);
   });
 });

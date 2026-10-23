@@ -82,7 +82,8 @@ import {
   ScaleFactorNotPositive,
   TransformHasNoScope,
   UnknownAttribute,
-  Refusal,
+  isRefusal,
+  type Refusal,
 } from "../protocol/refusal/Refusal.js";
 import type { HistoryView } from "../protocol/view/View.js";
 import {
@@ -627,7 +628,7 @@ export class Editor {
       return Outcome.refused(Kind.Change, new InternalError());
     }
     const mode = this.resolveMode(source, command.target, command.scope);
-    if (mode instanceof Refusal) {
+    if (isRefusal(mode)) {
       return Outcome.refused(Kind.Change, mode);
     }
     const name = this.nodeName(id);
@@ -712,7 +713,7 @@ export class Editor {
           Transform.translated((command as Move).dx, (command as Move).dy),
           (node) => translateParams(node, (command as Move).dx, (command as Move).dy),
         );
-    if (plan instanceof Refusal) {
+    if (!Array.isArray(plan)) {
       return Outcome.refused(Kind.Change, plan);
     }
     if (plan.length === 0) {

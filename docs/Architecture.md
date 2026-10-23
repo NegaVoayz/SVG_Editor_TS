@@ -43,6 +43,9 @@ package "Model" {
   [Document]
   [UnitOfWork]
   [TreeStore]
+  [TreeStructure]
+  [TreeIndex]
+  [TreeText]
   [Hive]
   [Node hierarchy]
   [TreeQuery]
@@ -50,6 +53,7 @@ package "Model" {
 package "I/O" {
   [SvgReader]
   [SvgSerializer]
+  [SvgSchema]
   [Loader]
 }
 main --> Session
@@ -89,8 +93,8 @@ Hive --> Snapshot
 
 | 变化 | 落点 | 成本 |
 | --- | --- | --- |
-| 新属性 | `AttributeCommand` 子类、Parser 表项，必要时节点或 View 渲染 | 类型系统会指出全部遗漏 |
-| 新图元 | `ShapeProvider` + 节点类 + `NodeVisitor` 新方法 | Visitor 的抽象方法使遗漏立即编译失败 |
+| 新属性 | `ATTRIBUTES` 规格表中的一个记录 | 解析、适用性与写入同时定义 |
+| 新图元 | `NODE_TYPES` + `SVG_SCHEMA` + `ShapeProvider` + `NodeVisitor` | 联合类型、Visitor、Schema 测试共同指出遗漏 |
 | 新命令 | `Command` 子类、`CommandContext` 方法和 Planner 路由 | 路由与执行均为显式方法 |
 | 新前端 | 复用 Parser/Planner/Rendering 边界 | Session 的 readline 循环需替换 |
 | 新文件格式 | 新 Reader/Loader/Serializer | `Document` 文件边界需要泛化 |

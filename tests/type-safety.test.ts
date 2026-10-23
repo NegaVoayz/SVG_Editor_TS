@@ -7,7 +7,10 @@ import {
   Group,
   Hive,
   Length,
+  NodeBase,
   Undone,
+  type Node,
+  type NodeVisitor,
 } from "../src/index.js";
 import type { Editor, Rect, Refusal } from "../src/index.js";
 
@@ -47,6 +50,20 @@ export function methodNameGuard(editor: Editor): unknown {
 
 export type ExactHive = Assert<Equal<typeof Hive, typeof Hive>>;
 export const exactHive: ExactHive = true;
+
+class Star extends NodeBase {
+  public override get elementName(): "star" {
+    return "star";
+  }
+
+  public override accept<Result>(visitor: NodeVisitor<Result>): Result {
+    throw new Error(`star is not a registered node: ${visitor.constructor.name}`);
+  }
+}
+
+export type StarIsNotNode = Assert<
+  Star extends Node ? false : true
+>;
 
 export function refusalGuard(refusal: Refusal): unknown {
   // @ts-expect-error S8: refusal field names are closed and typed.

@@ -29,10 +29,10 @@ export class EventRenderer {
         return `${label(event.node)} created${event.parentNamed ? ` in ${label(event.parent)}` : ""}`;
       case "composite-created":
         return `${label(event.node)} created (${[label(event.node), ...event.children.map(label)].join(" + ")})`;
-      case "box-fill-propagated":
-        return `${label(event.node)} fill propagated to ${event.child.id}`;
-      case "box-label-set":
-        return `${label(event.node)} label updated: ${quoted(event.content)}`;
+      case "composite-attribute-set":
+        return `${label(event.node)} ${event.attribute} propagated to ${event.target.id}`;
+      case "composite-content-set":
+        return `${label(event.node)} ${event.attribute} updated: ${quoted(event.content)}`;
       case "deleted":
         return `${label(event.node)} deleted${event.descendants === 0 ? "" : ` (${elementCount(event.descendants)})`}`;
       case "moved":
@@ -68,8 +68,8 @@ export class EventRenderer {
       case "saved":
         return `saved to ${quoteIfNeeded(event.path)} (${elementCount(event.elements)})`;
       case "undone":
-        if (event.original?.eventName === "box-label-set") {
-          return `undo: ${label(event.original.node)} label restored: ${quoted(event.original.previousContent)} (HEAD ${String(event.checkout)})`;
+        if (event.original?.eventName === "composite-content-set") {
+          return `undo: ${label(event.original.node)} ${event.original.attribute} restored: ${quoted(event.original.previousContent)} (HEAD ${String(event.checkout)})`;
         }
         return `${event.original === null ? "undone" : `undo: ${this.render(event.original)}`} (HEAD ${String(event.checkout)})`;
       case "redone":

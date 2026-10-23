@@ -1,5 +1,10 @@
 import { BUILTIN_PROVIDERS } from "./BuiltinProviders.js";
-import { ProviderParseError } from "./ShapeProvider.js";
+import {
+  isCompositeProvider,
+  ProviderParseError,
+  type CompositeShapeProvider,
+} from "./ShapeProvider.js";
+import type { Element } from "../model/node/index.js";
 import type { ShapeProvider } from "./ShapeProvider.js";
 
 export class ShapeRegistry {
@@ -26,6 +31,17 @@ export class ShapeRegistry {
 
   public kinds(): readonly string[] {
     return [...this.providers.keys()];
+  }
+
+  public providerFor(
+    node: Element,
+  ): (ShapeProvider & CompositeShapeProvider) | undefined {
+    for (const provider of this.providers.values()) {
+      if (isCompositeProvider(provider) && provider.matches(node)) {
+        return provider;
+      }
+    }
+    return undefined;
   }
 }
 

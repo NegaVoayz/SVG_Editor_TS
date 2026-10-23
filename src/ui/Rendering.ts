@@ -6,12 +6,17 @@ import { EventRenderer } from "./EventRenderer.js";
 import { HistoryRenderer } from "./HistoryRenderer.js";
 import { RefusalRenderer } from "./RefusalRenderer.js";
 import { TreeRenderer } from "./TreeRenderer.js";
+import type { ShapeRegistry } from "../plugin/Registry.js";
 
 export class Rendering {
-  private readonly trees = new TreeRenderer();
+  private readonly trees: TreeRenderer;
   private readonly events = new EventRenderer();
   private readonly refusals = new RefusalRenderer();
   private readonly histories = new HistoryRenderer(this.events);
+
+  public constructor(shapes: ShapeRegistry) {
+    this.trees = new TreeRenderer(shapes);
+  }
 
   public view(view: View): string {
     if ("rows" in view) {

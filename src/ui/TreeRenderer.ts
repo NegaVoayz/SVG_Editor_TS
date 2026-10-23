@@ -4,6 +4,7 @@ import {
 } from "../model/node/index.js";
 import type { NodeView, TreeView } from "../protocol/view/View.js";
 import { geometryDetails } from "../editor/shape/DetailsVisitor.js";
+import type { ShapeRegistry } from "../plugin/Registry.js";
 
 export function quoteIfNeeded(text: string): string {
   return /[\s"\\]/u.test(text) || text === ""
@@ -13,19 +14,6 @@ export function quoteIfNeeded(text: string): string {
 
 export function quoted(text: string): string {
   return `"${text.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
-}
-
-export function nodeLabel(node: Node): string {
-  if (!isElementNode(node)) {
-    return "<text-node>";
-  }
-  const name =
-    node.id === ""
-      ? node.elementName
-      : `${node.elementName}#${quoteIfNeeded(node.id)}`;
-  return node.elementName === "g" && node.dataKind !== null
-    ? `${name} (${node.dataKind})`
-    : name;
 }
 
 export function nodeDetails(node: Node, text = ""): readonly string[] {
@@ -69,6 +57,8 @@ export function nodeDetails(node: Node, text = ""): readonly string[] {
 }
 
 export class TreeRenderer {
+  public constructor(private readonly shapes: ShapeRegistry) {}
+
   public render(view: TreeView): string {
     const lines = view.rows.map((row, index) => {
       let prefix = "";
@@ -81,7 +71,7 @@ export class TreeRenderer {
       }
       return {
         prefix,
-        name: nodeLabel(row.shape),
+        name: this.nodeLabel(row.shape),
         details: nodeDetails(row.shape, row.text).join(" "),
       };
     });
@@ -104,9 +94,9 @@ export class TreeRenderer {
   }
 
   public renderNode(view: NodeView): string {
-    let output = nodeLabel(view.shape);
+    let output = this.nodeLabel(view.shape);
     if (view.parent !== null) {
-      output += `  parent=${nodeLabel(view.parent.shape)}`;
+      output += `  parent=${this.nodeLabel(view.parent.shape)}`;
     }
     const details = nodeDetails(view.shape, view.text);
     if (details.length === 0) {
@@ -137,6 +127,18 @@ export class TreeRenderer {
       }
     }
     return followed;
+  }
+
+  private nodeLabel(node: Node): string {
+    if (!isElementNode(node)) {
+      return "<text-node>";
+    }
+    const name =
+      node.id === ""
+        ? node.elementName
+        : `${node.elementName}#${quoteIfNeeded(node.id)}`;
+    const description = this.shapes.providerFor(node)?.describe(node);
+    return description === undefined ? name : `${name} (${description})`;
   }
 }
 

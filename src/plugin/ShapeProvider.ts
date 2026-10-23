@@ -1,3 +1,6 @@
+import type { Document } from "../model/document/Document.js";
+import type { Element } from "../model/node/index.js";
+import type { Vid } from "../model/store/hiveState.js";
 import type { NodeRef } from "../protocol/NodeRef.js";
 import type { CreateIntent } from "../protocol/cmd/Create.js";
 
@@ -17,5 +20,29 @@ export abstract class ShapeProvider {
     parent: NodeRef,
     parentNamed: boolean,
   ): CreateIntent;
+}
+
+export interface CompositeShapeProvider {
+  readonly composite: true;
+  readonly ungroupable: boolean;
+  readonly contentAttribute: string;
+
+  matches(node: Element): boolean;
+
+  describe(node: Element): string;
+
+  attributeTarget(
+    document: Document,
+    node: Element,
+    attribute: string,
+  ): Vid | null;
+
+  contentTarget(document: Document, node: Element): Vid | null;
+}
+
+export function isCompositeProvider(
+  provider: ShapeProvider,
+): provider is ShapeProvider & CompositeShapeProvider {
+  return "composite" in provider && provider.composite === true;
 }
 

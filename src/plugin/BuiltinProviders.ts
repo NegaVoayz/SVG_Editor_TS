@@ -26,6 +26,10 @@ import {
   CreateIntent,
 } from "../protocol/cmd/Create.js";
 import { ProviderParseError, ShapeProvider } from "./ShapeProvider.js";
+import type { CompositeShapeProvider } from "./ShapeProvider.js";
+import type { Document } from "../model/document/Document.js";
+import type { Element } from "../model/node/index.js";
+import type { Vid } from "../model/store/hiveState.js";
 
 function length(word: string | undefined, name: string): LengthPercentage {
   const value = parseLength(word ?? "");
@@ -246,8 +250,14 @@ export class PolygonIntent extends CreateIntent {
   }
 }
 
-export class CreateBox extends ShapeProvider {
+export class BoxProvider
+  extends ShapeProvider
+  implements CompositeShapeProvider
+{
   public readonly kind = "box";
+  public readonly composite = true as const;
+  public readonly ungroupable = false;
+  public readonly contentAttribute = "label";
 
   public create(
     id: string,
@@ -266,6 +276,30 @@ export class CreateBox extends ShapeProvider {
       parent,
       parentNamed,
     );
+  }
+
+  public matches(node: Element): boolean {
+    return node.elementName === "g" && node.dataKind === "box";
+  }
+
+  public describe(): string {
+    return "box";
+  }
+
+  public attributeTarget(
+    document: Document,
+    node: Element,
+    attribute: string,
+  ): Vid | null {
+    return attribute === "fill" && node.elementName === "g"
+      ? (document.find(`${node.id}-rect`) ?? null)
+      : null;
+  }
+
+  public contentTarget(document: Document, node: Element): Vid | null {
+    return node.elementName === "g"
+      ? (document.find(`${node.id}-label`) ?? null)
+      : null;
   }
 }
 
@@ -328,6 +362,6 @@ export const BUILTIN_PROVIDERS: readonly ShapeProvider[] = [
   new TextProvider(),
   new GroupProvider(),
   new PolygonProvider(),
-  new CreateBox(),
+  new BoxProvider(),
 ];
 

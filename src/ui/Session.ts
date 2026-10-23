@@ -67,23 +67,26 @@ export class Session {
   public readonly editor: Editor;
   public readonly planner: Planner;
   private readonly parser: IntentParser;
-  private readonly rendering = new Rendering();
+  private readonly rendering: Rendering;
   private zoomFactor = 1;
 
   public constructor(options: SessionOptions = {}) {
     const configured =
       options.historyLimit ??
       Number(process.env["SVG_EDITOR_HISTORY_LIMIT"] ?? "20");
+    const shapes = new ShapeRegistry();
     this.editor = new Editor(
       this.document,
       Number.isInteger(configured) && configured >= 0 ? configured : 20,
+      shapes,
     );
     this.planner = new Planner(this.document, this.editor);
     this.parser = new IntentParser(
-      new ShapeRegistry(),
+      shapes,
       options.moveDefaultsToTransform ??
         process.env["SVG_EDITOR_MOVE_DEFAULT"] !== "params",
     );
+    this.rendering = new Rendering(shapes);
   }
 
   public zoom(): number {

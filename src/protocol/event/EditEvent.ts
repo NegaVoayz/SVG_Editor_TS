@@ -16,8 +16,8 @@ export class NodeName {
 export type EditEventName =
   | "created"
   | "composite-created"
-  | "box-fill-propagated"
-  | "box-label-set"
+  | "composite-attribute-set"
+  | "composite-content-set"
   | "deleted"
   | "moved"
   | "scaled"
@@ -62,20 +62,22 @@ export class CompositeCreated extends EditEventBase {
     super();
   }
 }
-export class BoxFillPropagated extends EditEventBase {
-  public readonly eventName = "box-fill-propagated";
+export class CompositeAttributeSet extends EditEventBase {
+  public readonly eventName = "composite-attribute-set";
   public constructor(
     public readonly node: NodeName,
-    public readonly child: NodeName,
+    public readonly target: NodeName,
+    public readonly attribute: string,
     public readonly value: string,
   ) {
     super();
   }
 }
-export class BoxLabelSet extends EditEventBase {
-  public readonly eventName = "box-label-set";
+export class CompositeContentSet extends EditEventBase {
+  public readonly eventName = "composite-content-set";
   public constructor(
     public readonly node: NodeName,
+    public readonly attribute: string,
     public readonly content: string,
     public readonly previousContent = "",
   ) {
@@ -279,8 +281,8 @@ export class CheckedOut extends EditEventBase {
 export type EditEvent =
   | Created
   | CompositeCreated
-  | BoxFillPropagated
-  | BoxLabelSet
+  | CompositeAttributeSet
+  | CompositeContentSet
   | Deleted
   | Moved
   | Scaled

@@ -5,14 +5,16 @@ import {
   PlainTextNode,
   Svg,
   TextNode,
+  isElementNode,
 } from "../model/node/index.js";
 import { ElementNode } from "../model/node/ElementNode.js";
 import type { Node } from "../model/node/index.js";
 import type { Vid } from "../model/store/hiveState.js";
 import { IdentityAttr } from "../model/values/IdentityAttr.js";
-import { Paint } from "../model/values/Paint.js";
 import { reservedSvgId, validSvgId } from "../model/values/svgId.js";
 import { Transform } from "../model/values/Transform.js";
+import { ShapeRegistry } from "../plugin/Registry.js";
+import type { CompositeShapeProvider } from "../plugin/ShapeProvider.js";
 import type { AttributeCommand } from "../protocol/attr/AttributeCommand.js";
 import type {
   AddTo,
@@ -34,9 +36,9 @@ import {
   AlreadyBack,
   AlreadyFront,
   AttributeSet,
-  BoxFillPropagated,
-  BoxLabelSet,
   CanvasSet,
+  CompositeAttributeSet,
+  CompositeContentSet,
   ContentSet,
   CompositeCreated,
   Created,
@@ -122,9 +124,10 @@ export class Editor {
   public constructor(
     private readonly document: Document,
     defaultHistoryLimit = 20,
+    private readonly shapes = new ShapeRegistry(),
   ) {
     this.replay = new History(document, defaultHistoryLimit);
-    this.naming = new NodeNaming(document);
+    this.naming = new NodeNaming(document, shapes);
   }
 
   public create(command: CreateIntent): Outcome {
@@ -391,11 +394,14 @@ export class Editor {
         new CannotUngroupNonContainer(command.node),
       );
     }
-    if (node instanceof Group && node.dataKind !== null) {
-      return Outcome.refused(
-        Kind.Change,
-        new CannotUngroupCompositeShape(command.node),
-      );
+    if (isElementNode(node)) {
+      const provider = this.shapes.providerFor(node);
+      if (provider !== undefined && !provider.ungroupable) {
+        return Outcome.refused(
+          Kind.Change,
+          new CannotUngroupCompositeShape(command.node),
+        );
+      }
     }
     const parent = this.document.parent(id);
     if (parent === undefined) {
@@ -465,23 +471,42 @@ export class Editor {
     if (source === undefined) {
       return Outcome.refused(Kind.Change, new InternalError());
     }
-    if (command.contentValue !== null) {
-      if (source instanceof Group && source.dataKind === "box") {
-        return this.setBoxLabel(id, command.contentValue);
+    const composite = isElementNode(source)
+      ? this.shapes.providerFor(source)
+      : undefined;
+    if (
+      command.contentValue !== null &&
+      composite !== undefined &&
+      isElementNode(source)
+    ) {
+      const target = composite.contentTarget(this.document, source);
+      if (target !== null) {
+        return this.setCompositeContent(
+          id,
+          target,
+          composite,
+          command.contentValue,
+        );
       }
+    }
+    if (command.contentValue !== null) {
       return this.setContent(id, source, command);
     }
-    if (!(source instanceof ElementNode)) {
+    if (!isElementNode(source)) {
       return Outcome.refused(
         Kind.Change,
         new UnknownAttribute(command.attributeName),
       );
     }
     const lengthValue = lengthValueOf(command);
-    if (source instanceof Group && source.dataKind === "box") {
-      const candidate = command.value;
-      if (command.attributeName === "fill" && candidate instanceof Paint) {
-        return this.setBoxFill(id, candidate);
+    if (composite !== undefined) {
+      const target = composite.attributeTarget(
+        this.document,
+        source,
+        command.attributeName,
+      );
+      if (target !== null) {
+        return this.setCompositeAttribute(id, target, command);
       }
     }
     if (
@@ -869,32 +894,31 @@ export class Editor {
     }
   }
 
-  private setBoxFill(boxId: Vid, fill: Paint): Outcome {
-    const box = this.document.node(boxId);
-    if (!(box instanceof Group) || box.dataKind !== "box") {
+  private setCompositeAttribute(
+    compositeId: Vid,
+    targetId: Vid,
+    command: AttributeCommand,
+  ): Outcome {
+    const target = this.document.node(targetId);
+    if (target === undefined || !isElementNode(target)) {
       return Outcome.refused(Kind.Change, new InternalError());
     }
-    const rectId = this.document.find(`${box.id}-rect`);
-    if (rectId === undefined) {
-      return Outcome.refused(Kind.Change, new InternalError());
+    const replacement = command.applyTo(target);
+    if (replacement === null) {
+      return Outcome.refused(
+        Kind.Change,
+        new UnknownAttribute(command.attributeName),
+      );
     }
-    const rect = this.document.node(rectId);
-    if (!(rect instanceof ElementNode)) {
-      return Outcome.refused(Kind.Change, new InternalError());
-    }
-    const replacement = rect.withAttributes(
-      rect.identity,
-      rect.paint.withFill(fill),
-      rect.transformAttr,
-    );
     const edit = this.document.transaction();
     try {
-      edit.update(rectId, replacement);
+      edit.update(targetId, replacement);
       edit.commit();
-      const event = new BoxFillPropagated(
-        this.nodeName(boxId),
-        this.nodeName(rectId),
-        fill.toSvgText(),
+      const event = new CompositeAttributeSet(
+        this.nodeName(compositeId),
+        this.nodeName(targetId),
+        command.attributeName,
+        attributeText(command),
       );
       this.record(event);
       return Outcome.happened(Kind.Change, event);
@@ -904,17 +928,14 @@ export class Editor {
     }
   }
 
-  private setBoxLabel(boxId: Vid, content: string): Outcome {
-    const box = this.document.node(boxId);
-    if (!(box instanceof Group) || box.dataKind !== "box") {
-      return Outcome.refused(Kind.Change, new InternalError());
-    }
-    const labelId = this.document.find(`${box.id}-label`);
-    if (labelId === undefined) {
-      return Outcome.refused(Kind.Change, new InternalError());
-    }
+  private setCompositeContent(
+    compositeId: Vid,
+    contentId: Vid,
+    provider: CompositeShapeProvider,
+    content: string,
+  ): Outcome {
     const textChild = this.document
-      .children(labelId)
+      .children(contentId)
       .find((child) => this.document.node(child) instanceof PlainTextNode);
     const previous =
       textChild === undefined
@@ -923,13 +944,14 @@ export class Editor {
     const edit = this.document.transaction();
     try {
       if (textChild === undefined) {
-        edit.appendChild(labelId, new PlainTextNode(content));
+        edit.appendChild(contentId, new PlainTextNode(content));
       } else {
         edit.update(textChild, new PlainTextNode(content));
       }
       edit.commit();
-      const event = new BoxLabelSet(
-        this.nodeName(boxId),
+      const event = new CompositeContentSet(
+        this.nodeName(compositeId),
+        provider.contentAttribute,
         content,
         previous,
       );

@@ -5,9 +5,13 @@ import {
 import type { Node } from "../model/node/index.js";
 import type { Vid } from "../model/store/hiveState.js";
 import { NodeName } from "../protocol/event/EditEvent.js";
+import type { ShapeRegistry } from "../plugin/Registry.js";
 
 export class NodeNaming {
-  public constructor(private readonly document: Document) {}
+  public constructor(
+    private readonly document: Document,
+    private readonly shapes: ShapeRegistry,
+  ) {}
 
   public node(id: Vid): NodeName {
     const node = this.document.node(id);
@@ -20,9 +24,8 @@ export class NodeNaming {
   public name(node: Node): NodeName {
     return isElementNode(node)
       ? new NodeName(
-          node.elementName === "g" && node.dataKind !== null
-            ? node.dataKind
-            : node.elementName,
+          this.shapes.providerFor(node)?.describe(node) ??
+            node.elementName,
           node.id,
         )
       : new NodeName("#text", "");

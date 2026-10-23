@@ -128,6 +128,15 @@ describe("CLI behaviour", () => {
     ).toContain("error: unknown attribute: x");
   });
 
+  it("distinguishes a missing attribute target from no document", () => {
+    expect(run("init; set missing x 1")).toContain(
+      "error: no such shape: missing",
+    );
+    expect(run("set missing x 1")).toContain(
+      "error: no document. use 'init' or 'read' first",
+    );
+  });
+
   it("stores text content as a child node", () => {
     const output = run(
       'init; create text title 20 40 "My Diagram"; set title text "My Diagram v2"; tree',

@@ -19,7 +19,9 @@ import { Kind } from "../protocol/Kind.js";
 import { Outcome } from "../protocol/Outcome.js";
 import {
   InternalError,
+  MissingShape,
   NegativeDimension,
+  NoDocument,
   NonPositiveCanvas,
   OpacityOutOfRange,
   UnknownAttribute,
@@ -41,7 +43,9 @@ export class AttributeWriter {
     if (id === undefined) {
       return Outcome.refused(
         Kind.Change,
-        new UnknownAttribute(command.attributeName),
+        this.document.hasDocument()
+          ? new MissingShape(command.target)
+          : new NoDocument(),
       );
     }
     const source = this.document.node(id);

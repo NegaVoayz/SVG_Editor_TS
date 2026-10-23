@@ -9,7 +9,7 @@ import {
   TextNode,
   TextPath,
   withTextCommon,
-  type ElementNode,
+  type Element,
 } from "../../model/node/index.js";
 import { parsePaint } from "../../model/values/Color.js";
 import { Paint } from "../../model/values/Paint.js";
@@ -46,11 +46,11 @@ export class AttributeSpec {
   public constructor(
     public readonly name: string,
     public readonly parse: (word: string) => AttributeValue,
-    public readonly appliesTo: (node: ElementNode) => boolean,
+    public readonly appliesTo: (node: Element) => boolean,
     public readonly apply: (
-      node: ElementNode,
+      node: Element,
       value: AttributeValue,
-    ) => ElementNode | null,
+    ) => Element | null,
     public readonly options: AttributeSpecOptions = {},
   ) {}
 }
@@ -77,8 +77,8 @@ function paint(word: string, noun: string): Paint {
 
 function lengthSpec(
   name: string,
-  appliesTo: (node: ElementNode) => boolean,
-  apply: (node: ElementNode, value: AttributeValue) => ElementNode | null,
+  appliesTo: (node: Element) => boolean,
+  apply: (node: Element, value: AttributeValue) => Element | null,
   options: AttributeSpecOptions = {},
 ): AttributeSpec {
   return new AttributeSpec(
@@ -93,11 +93,11 @@ function lengthSpec(
 function withCommon(
   node: TextNode,
   common: TextCommon,
-): ElementNode {
+): Element {
   return withTextCommon(node, common);
 }
 
-const setX = (node: ElementNode, value: AttributeValue): ElementNode | null => {
+const setX = (node: Element, value: AttributeValue): Element | null => {
   if (!(value instanceof LengthPercentage)) {
     return null;
   }
@@ -127,7 +127,7 @@ const setX = (node: ElementNode, value: AttributeValue): ElementNode | null => {
     : null;
 };
 
-const setY = (node: ElementNode, value: AttributeValue): ElementNode | null => {
+const setY = (node: Element, value: AttributeValue): Element | null => {
   if (!(value instanceof LengthPercentage)) {
     return null;
   }

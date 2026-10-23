@@ -1,12 +1,12 @@
 import type { NodeVisitor } from "../visit/NodeVisitor.js";
-import { Node } from "./Node.js";
+import { NodeBase } from "./NodeBase.js";
 
-export class PlainTextNode extends Node {
+export class PlainTextNode extends NodeBase {
   public constructor(public readonly content: string) {
     super();
   }
 
-  public override get elementName(): string {
+  public override get elementName(): "#text" {
     return "#text";
   }
 

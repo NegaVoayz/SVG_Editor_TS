@@ -17,7 +17,7 @@ export class Circle extends ShapeNode {
     super(identity, paint, transformAttr);
   }
 
-  public override get elementName(): string {
+  public override get elementName(): "circle" {
     return "circle";
   }
 

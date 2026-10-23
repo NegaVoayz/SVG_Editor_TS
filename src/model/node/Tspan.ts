@@ -15,7 +15,7 @@ export class Tspan extends TextNode {
     super(common, identity, paint, transformAttr);
   }
 
-  public override get elementName(): string {
+  public override get elementName(): "tspan" {
     return "tspan";
   }
 

@@ -5,7 +5,7 @@ import type { TransformAttr } from "../values/TransformAttr.js";
 import { ContainerNode } from "./ContainerNode.js";
 
 export class Switch extends ContainerNode {
-  public override get elementName(): string {
+  public override get elementName(): "switch" {
     return "switch";
   }
 

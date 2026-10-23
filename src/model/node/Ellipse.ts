@@ -18,7 +18,7 @@ export class Ellipse extends ShapeNode {
     super(identity, paint, transformAttr);
   }
 
-  public override get elementName(): string {
+  public override get elementName(): "ellipse" {
     return "ellipse";
   }
 

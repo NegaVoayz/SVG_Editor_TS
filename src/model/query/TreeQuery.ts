@@ -1,6 +1,6 @@
 import type { Document } from "../document/Document.js";
 import { PlainTextNode } from "../node/PlainTextNode.js";
-import type { ElementNode, Node } from "../node/index.js";
+import type { Element, Node } from "../node/index.js";
 import type { Vid } from "../store/hiveState.js";
 import type { Transform } from "../values/Transform.js";
 
@@ -22,7 +22,7 @@ export class ShownNode {
     public readonly text: string,
     public readonly transform: Transform,
     public readonly parentId: Vid | null,
-    public readonly parentNode: ElementNode | null,
+    public readonly parentNode: Element | null,
   ) {}
 }
 
@@ -53,7 +53,7 @@ export class TreeQuery {
       : (() => {
           const parent = this.document.node(parentId);
           return parent !== undefined && "identity" in parent
-            ? (parent as ElementNode)
+            ? parent
             : null;
         })();
     return new ShownNode(

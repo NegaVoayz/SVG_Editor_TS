@@ -1,9 +1,9 @@
 import { IdentityAttr } from "../values/IdentityAttr.js";
 import { PaintAttr } from "../values/PaintAttr.js";
 import { TransformAttr } from "../values/TransformAttr.js";
-import { Node } from "./Node.js";
+import { NodeBase } from "./NodeBase.js";
 
-export abstract class ElementNode extends Node {
+export abstract class ElementNode extends NodeBase {
   public constructor(
     public readonly identity: IdentityAttr = new IdentityAttr(""),
     public readonly paint: PaintAttr = new PaintAttr(),

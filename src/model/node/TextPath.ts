@@ -18,7 +18,7 @@ export class TextPath extends TextNode {
     super(common, identity, paint, transformAttr);
   }
 
-  public override get elementName(): string {
+  public override get elementName(): "textPath" {
     return "textPath";
   }
 

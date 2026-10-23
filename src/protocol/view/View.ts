@@ -1,11 +1,11 @@
-import type { ElementNode, Node } from "../../model/node/index.js";
+import type { Element, Node } from "../../model/node/index.js";
 import type { Vid } from "../../model/store/hiveState.js";
 import type { Transform } from "../../model/values/Transform.js";
 import type { EditEvent } from "../event/EditEvent.js";
 import type { HistoryEntry } from "../event/HistoryEntry.js";
 
 export class ElementShape {
-  public constructor(public readonly node: ElementNode) {}
+  public constructor(public readonly node: Element) {}
 }
 
 export class CharacterView {
@@ -30,7 +30,7 @@ export class TreeView {
 export class NodeParent {
   public constructor(
     public readonly nodeId: Vid,
-    public readonly shape: ElementNode,
+    public readonly shape: Element,
   ) {}
 }
 

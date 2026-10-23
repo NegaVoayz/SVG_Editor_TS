@@ -1,4 +1,4 @@
-import type { ElementNode } from "../../model/node/index.js";
+import type { Element } from "../../model/node/index.js";
 import { Kind } from "../Kind.js";
 import type { NodeRef } from "../NodeRef.js";
 import { RootRef } from "../NodeRef.js";
@@ -28,7 +28,7 @@ export class AttributeCommand extends Command {
       : null;
   }
 
-  public applyTo(node: ElementNode): ElementNode | null {
+  public applyTo(node: Element): Element | null {
     return this.spec.apply(node, this.value);
   }
 

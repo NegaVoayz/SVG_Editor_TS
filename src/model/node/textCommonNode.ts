@@ -3,10 +3,12 @@ import { TextWrapper } from "./TextWrapper.js";
 import { Tspan } from "./Tspan.js";
 import type { TextCommon, TextNode } from "./TextNode.js";
 
+export type ConcreteTextNode = TextWrapper | Tspan | TextPath;
+
 export function withTextCommon(
   node: TextNode,
   common: TextCommon,
-): TextNode {
+): ConcreteTextNode {
   if (node instanceof TextWrapper) {
     return new TextWrapper(
       common,

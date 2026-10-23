@@ -15,7 +15,7 @@ export class TextWrapper extends TextNode {
     super(common, identity, paint, transformAttr);
   }
 
-  public override get elementName(): string {
+  public override get elementName(): "text" {
     return "text";
   }
 

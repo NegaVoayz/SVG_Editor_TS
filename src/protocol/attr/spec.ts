@@ -6,10 +6,11 @@ import {
   Svg,
   TextAnchor,
   TextCommon,
-  TextNode,
   TextPath,
   withTextCommon,
   type Element,
+  type TextWrapper,
+  type Tspan,
 } from "../../model/node/index.js";
 import { parsePaint } from "../../model/values/Color.js";
 import { Paint } from "../../model/values/Paint.js";
@@ -90,8 +91,30 @@ function lengthSpec(
   );
 }
 
+type ConcreteTextNode = TextWrapper | Tspan | TextPath;
+
+function isTextElement(node: Element): node is ConcreteTextNode {
+  switch (node.elementName) {
+    case "text":
+    case "tspan":
+    case "textPath":
+      return true;
+    case "rect":
+    case "circle":
+    case "ellipse":
+    case "line":
+    case "polygon":
+    case "g":
+    case "defs":
+    case "svg":
+    case "symbol":
+    case "switch":
+      return false;
+  }
+}
+
 function withCommon(
-  node: TextNode,
+  node: ConcreteTextNode,
   common: TextCommon,
 ): Element {
   return withTextCommon(node, common);
@@ -101,7 +124,7 @@ const setX = (node: Element, value: AttributeValue): Element | null => {
   if (!(value instanceof LengthPercentage)) {
     return null;
   }
-  if (node instanceof Rect) {
+  if (node.elementName === "rect") {
     return new Rect(
       value,
       node.y,
@@ -112,7 +135,7 @@ const setX = (node: Element, value: AttributeValue): Element | null => {
       node.transformAttr,
     );
   }
-  return node instanceof TextNode && node.common.x !== null
+  return isTextElement(node) && node.common.x !== null
     ? withCommon(
         node,
         new TextCommon(
@@ -131,7 +154,7 @@ const setY = (node: Element, value: AttributeValue): Element | null => {
   if (!(value instanceof LengthPercentage)) {
     return null;
   }
-  if (node instanceof Rect) {
+  if (node.elementName === "rect") {
     return new Rect(
       node.x,
       value,
@@ -142,7 +165,7 @@ const setY = (node: Element, value: AttributeValue): Element | null => {
       node.transformAttr,
     );
   }
-  return node instanceof TextNode && node.common.y !== null
+  return isTextElement(node) && node.common.y !== null
     ? withCommon(
         node,
         new TextCommon(
@@ -160,19 +183,19 @@ const setY = (node: Element, value: AttributeValue): Element | null => {
 export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   x: lengthSpec(
     "x",
-    (node) => node instanceof Rect || node instanceof TextNode,
+    (node) => node.elementName === "rect" || isTextElement(node),
     setX,
   ),
   y: lengthSpec(
     "y",
-    (node) => node instanceof Rect || node instanceof TextNode,
+    (node) => node.elementName === "rect" || isTextElement(node),
     setY,
   ),
   w: lengthSpec(
     "w",
-    (node) => node instanceof Rect,
+    (node) => node.elementName === "rect",
     (node, value) =>
-      node instanceof Rect && value instanceof LengthPercentage
+      node.elementName === "rect" && value instanceof LengthPercentage
         ? new Rect(
             node.x,
             node.y,
@@ -187,9 +210,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   h: lengthSpec(
     "h",
-    (node) => node instanceof Rect,
+    (node) => node.elementName === "rect",
     (node, value) =>
-      node instanceof Rect && value instanceof LengthPercentage
+      node.elementName === "rect" && value instanceof LengthPercentage
         ? new Rect(
             node.x,
             node.y,
@@ -204,12 +227,12 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   cx: lengthSpec(
     "cx",
-    (node) => node instanceof Circle || node instanceof Ellipse,
+    (node) => node.elementName === "circle" || node.elementName === "ellipse",
     (node, value) => {
       if (!(value instanceof LengthPercentage)) {
         return null;
       }
-      if (node instanceof Circle) {
+      if (node.elementName === "circle") {
         return new Circle(
           value,
           node.cy,
@@ -219,7 +242,7 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
           node.transformAttr,
         );
       }
-      return node instanceof Ellipse
+      return node.elementName === "ellipse"
         ? new Ellipse(
             value,
             node.cy,
@@ -234,12 +257,12 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   cy: lengthSpec(
     "cy",
-    (node) => node instanceof Circle || node instanceof Ellipse,
+    (node) => node.elementName === "circle" || node.elementName === "ellipse",
     (node, value) => {
       if (!(value instanceof LengthPercentage)) {
         return null;
       }
-      if (node instanceof Circle) {
+      if (node.elementName === "circle") {
         return new Circle(
           node.cx,
           value,
@@ -249,7 +272,7 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
           node.transformAttr,
         );
       }
-      return node instanceof Ellipse
+      return node.elementName === "ellipse"
         ? new Ellipse(
             node.cx,
             value,
@@ -264,9 +287,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   r: lengthSpec(
     "r",
-    (node) => node instanceof Circle,
+    (node) => node.elementName === "circle",
     (node, value) =>
-      node instanceof Circle && value instanceof LengthPercentage
+      node.elementName === "circle" && value instanceof LengthPercentage
         ? new Circle(
             node.cx,
             node.cy,
@@ -280,9 +303,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   rx: lengthSpec(
     "rx",
-    (node) => node instanceof Ellipse,
+    (node) => node.elementName === "ellipse",
     (node, value) =>
-      node instanceof Ellipse && value instanceof LengthPercentage
+      node.elementName === "ellipse" && value instanceof LengthPercentage
         ? new Ellipse(
             node.cx,
             node.cy,
@@ -297,9 +320,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   ry: lengthSpec(
     "ry",
-    (node) => node instanceof Ellipse,
+    (node) => node.elementName === "ellipse",
     (node, value) =>
-      node instanceof Ellipse && value instanceof LengthPercentage
+      node.elementName === "ellipse" && value instanceof LengthPercentage
         ? new Ellipse(
             node.cx,
             node.cy,
@@ -314,9 +337,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   x1: lengthSpec(
     "x1",
-    (node) => node instanceof Line,
+    (node) => node.elementName === "line",
     (node, value) =>
-      node instanceof Line && value instanceof LengthPercentage
+      node.elementName === "line" && value instanceof LengthPercentage
         ? new Line(
             value,
             node.y1,
@@ -330,9 +353,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   y1: lengthSpec(
     "y1",
-    (node) => node instanceof Line,
+    (node) => node.elementName === "line",
     (node, value) =>
-      node instanceof Line && value instanceof LengthPercentage
+      node.elementName === "line" && value instanceof LengthPercentage
         ? new Line(
             node.x1,
             value,
@@ -346,9 +369,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   x2: lengthSpec(
     "x2",
-    (node) => node instanceof Line,
+    (node) => node.elementName === "line",
     (node, value) =>
-      node instanceof Line && value instanceof LengthPercentage
+      node.elementName === "line" && value instanceof LengthPercentage
         ? new Line(
             node.x1,
             node.y1,
@@ -362,9 +385,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   y2: lengthSpec(
     "y2",
-    (node) => node instanceof Line,
+    (node) => node.elementName === "line",
     (node, value) =>
-      node instanceof Line && value instanceof LengthPercentage
+      node.elementName === "line" && value instanceof LengthPercentage
         ? new Line(
             node.x1,
             node.y1,
@@ -378,9 +401,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   dx: lengthSpec(
     "dx",
-    (node) => node instanceof TextNode,
+    (node) => isTextElement(node),
     (node, value) =>
-      node instanceof TextNode && value instanceof LengthPercentage
+      isTextElement(node) && value instanceof LengthPercentage
         ? withCommon(
             node,
             new TextCommon(
@@ -396,9 +419,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   dy: lengthSpec(
     "dy",
-    (node) => node instanceof TextNode,
+    (node) => isTextElement(node),
     (node, value) =>
-      node instanceof TextNode && value instanceof LengthPercentage
+      isTextElement(node) && value instanceof LengthPercentage
         ? withCommon(
             node,
             new TextCommon(
@@ -449,12 +472,12 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   width: lengthSpec(
     "width",
-    (node) => node instanceof Rect || node instanceof Svg,
+    (node) => node.elementName === "rect" || node.elementName === "svg",
     (node, value) => {
       if (!(value instanceof LengthPercentage)) {
         return null;
       }
-      if (node instanceof Rect) {
+      if (node.elementName === "rect") {
         return new Rect(
           node.x,
           node.y,
@@ -465,7 +488,7 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
           node.transformAttr,
         );
       }
-      return node instanceof Svg
+      return node.elementName === "svg"
         ? new Svg(
             value,
             node.height,
@@ -481,12 +504,12 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   height: lengthSpec(
     "height",
-    (node) => node instanceof Rect || node instanceof Svg,
+    (node) => node.elementName === "rect" || node.elementName === "svg",
     (node, value) => {
       if (!(value instanceof LengthPercentage)) {
         return null;
       }
-      if (node instanceof Rect) {
+      if (node.elementName === "rect") {
         return new Rect(
           node.x,
           node.y,
@@ -497,7 +520,7 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
           node.transformAttr,
         );
       }
-      return node instanceof Svg
+      return node.elementName === "svg"
         ? new Svg(
             node.width,
             value,
@@ -513,9 +536,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   startOffset: lengthSpec(
     "startOffset",
-    (node) => node instanceof TextPath,
+    (node) => node.elementName === "textPath",
     (node, value) =>
-      node instanceof TextPath && value instanceof LengthPercentage
+      node.elementName === "textPath" && value instanceof LengthPercentage
         ? new TextPath(
             value,
             node.href,
@@ -529,9 +552,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   xmlns: new AttributeSpec(
     "xmlns",
     (word) => word,
-    (node) => node instanceof Svg,
+    (node) => node.elementName === "svg",
     (node, value) =>
-      node instanceof Svg && typeof value === "string"
+      node.elementName === "svg" && typeof value === "string"
         ? new Svg(
             node.width,
             node.height,
@@ -554,9 +577,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
       }
       return value;
     },
-    (node) => node instanceof Svg,
+    (node) => node.elementName === "svg",
     (node, value) =>
-      node instanceof Svg && value instanceof ViewBox
+      node.elementName === "svg" && value instanceof ViewBox
         ? new Svg(
             node.width,
             node.height,
@@ -585,10 +608,10 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
         `cannot read '${word}' as a text-anchor: start, middle or end`,
       );
     },
-    (node) => node instanceof TextNode,
+    (node) => isTextElement(node),
     (node, value) => {
       if (
-        !(node instanceof TextNode) ||
+        !(isTextElement(node)) ||
         (value !== TextAnchor.Start &&
           value !== TextAnchor.Middle &&
           value !== TextAnchor.End)
@@ -610,9 +633,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   ),
   "font-size": lengthSpec(
     "font-size",
-    (node) => node instanceof TextNode,
+    (node) => isTextElement(node),
     (node, value) =>
-      node instanceof TextNode && value instanceof LengthPercentage
+      isTextElement(node) && value instanceof LengthPercentage
         ? withCommon(
             node,
             new TextCommon(
@@ -690,9 +713,9 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   href: new AttributeSpec(
     "href",
     (word) => word,
-    (node) => node instanceof TextPath,
+    (node) => node.elementName === "textPath",
     (node, value) =>
-      node instanceof TextPath && typeof value === "string"
+      node.elementName === "textPath" && typeof value === "string"
         ? new TextPath(
             node.startOffset,
             value,
@@ -706,14 +729,14 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
   text: new AttributeSpec(
     "text",
     (word) => word,
-    (node) => node instanceof TextNode,
+    (node) => isTextElement(node),
     (node) => node,
     { content: true },
   ),
   content: new AttributeSpec(
     "content",
     (word) => word,
-    (node) => node instanceof TextNode,
+    (node) => isTextElement(node),
     (node) => node,
     { content: true },
   ),

@@ -1,9 +1,7 @@
 import {
-  Group,
-  TextNode,
+  isElementNode,
+  type Node,
 } from "../model/node/index.js";
-import { ElementNode } from "../model/node/ElementNode.js";
-import type { Node } from "../model/node/index.js";
 import type { NodeView, TreeView } from "../protocol/view/View.js";
 import { geometryDetails } from "../editor/shape/DetailsVisitor.js";
 
@@ -18,20 +16,20 @@ export function quoted(text: string): string {
 }
 
 export function nodeLabel(node: Node): string {
-  if (!(node instanceof ElementNode)) {
+  if (!isElementNode(node)) {
     return "<text-node>";
   }
   const name =
     node.id === ""
       ? node.elementName
       : `${node.elementName}#${quoteIfNeeded(node.id)}`;
-  return node instanceof Group && node.dataKind !== null
+  return node.elementName === "g" && node.dataKind !== null
     ? `${name} (${node.dataKind})`
     : name;
 }
 
 export function nodeDetails(node: Node, text = ""): readonly string[] {
-  if (!(node instanceof ElementNode)) {
+  if (!isElementNode(node)) {
     const detail = geometryDetails(node);
     return detail === null ? [] : [detail];
   }
@@ -59,7 +57,12 @@ export function nodeDetails(node: Node, text = ""): readonly string[] {
   if (transform !== "") {
     details.push(`transform=${transform}`);
   }
-  if (node instanceof TextNode && text !== "") {
+  if (
+    (node.elementName === "text" ||
+      node.elementName === "tspan" ||
+      node.elementName === "textPath") &&
+    text !== ""
+  ) {
     details.push(`text=${quoted(text)}`);
   }
   return details;

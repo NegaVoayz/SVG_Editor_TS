@@ -29,7 +29,8 @@ import {
   type NodeName,
 } from "../protocol/event/EditEvent.js";
 import { HistoryRenderer } from "./HistoryRenderer.js";
-import { canvasSize, quoteIfNeeded, quoted } from "./TreeRenderer.js";
+import { canvasSize } from "../protocol/view/CanvasText.js";
+import { quoteIfNeeded, quoted } from "./TreeRenderer.js";
 
 function label(name: NodeName): string {
   return name.id === ""

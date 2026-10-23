@@ -1,31 +1,18 @@
 import type { Document } from "../model/document/Document.js";
 import {
-  Circle,
   ContainerNode,
-  Ellipse,
   Group,
-  Line,
   PlainTextNode,
-  Polygon,
-  Rect,
   Svg,
-  TextCommon,
   TextNode,
-  TextPath,
-  TextWrapper,
-  Tspan,
 } from "../model/node/index.js";
 import { ElementNode } from "../model/node/ElementNode.js";
 import type { Node } from "../model/node/index.js";
 import type { Vid } from "../model/store/hiveState.js";
-import { LengthPercentage } from "../model/values/LengthPercentage.js";
 import { IdentityAttr } from "../model/values/IdentityAttr.js";
 import { Paint } from "../model/values/Paint.js";
-import { sumLengths } from "../model/values/geometry.js";
 import { reservedSvgId, validSvgId } from "../model/values/svgId.js";
 import { Transform } from "../model/values/Transform.js";
-import { ViewBox } from "../model/values/ViewBox.js";
-import { Coordinate } from "../model/values/Coordinate.js";
 import type { AttributeCommand } from "../protocol/attr/AttributeCommand.js";
 import type {
   AddTo,
@@ -50,7 +37,6 @@ import {
   BoxFillPropagated,
   BoxLabelSet,
   CanvasSet,
-  CheckedOut,
   ContentSet,
   CompositeCreated,
   Created,
@@ -61,13 +47,10 @@ import {
   MovedToFront,
   NodeName,
   NothingMoved,
-  Redone,
   Scaled,
   Ungrouped,
-  Undone,
   type EditEvent,
 } from "../protocol/event/EditEvent.js";
-import { HistoryEntry } from "../protocol/event/HistoryEntry.js";
 import { Kind } from "../protocol/Kind.js";
 import type { NodeRef } from "../protocol/NodeRef.js";
 import { EditScope, EditTarget, EditMode, RootRef, SvgIdRef } from "../protocol/NodeRef.js";
@@ -90,63 +73,34 @@ import {
   MissingShape,
   NegativeDimension,
   NoDocument,
-  NonFiniteValue,
   NonPositiveCanvas,
   NotContainer,
-  NothingToRedo,
-  NothingToUndo,
   OpacityOutOfRange,
   ReservedId,
   RootCannotBeErased,
   RootHasNoSiblings,
   ScaleFactorNotPositive,
   TransformHasNoScope,
-  UndoAfterIo,
   UnknownAttribute,
-  UnknownCommit,
   Refusal,
 } from "../protocol/refusal/Refusal.js";
 import type { HistoryView } from "../protocol/view/View.js";
+import {
+  attributeText,
+  createDimensions,
+  firstParam,
+  lengthValueOf,
+  NONNEGATIVE_ATTRIBUTES,
+} from "./attributes.js";
+import { History } from "./history/History.js";
+import { NodeNaming } from "./naming.js";
+import { scaleParams } from "./shape/ScaleVisitor.js";
+import { translateParams } from "./shape/TranslateVisitor.js";
 
 interface CascadeEntry {
   readonly id: Vid;
   readonly node: Node;
 }
-
-const NONNEGATIVE_ATTRIBUTES = new Set([
-  "w",
-  "h",
-  "r",
-  "rx",
-  "ry",
-  "stroke-width",
-  "width",
-  "height",
-  "font-size",
-]);
-
-const LENGTH_ATTRIBUTES = new Set([
-  "x",
-  "y",
-  "w",
-  "h",
-  "cx",
-  "cy",
-  "r",
-  "rx",
-  "ry",
-  "x1",
-  "y1",
-  "x2",
-  "y2",
-  "dx",
-  "dy",
-  "stroke-width",
-  "width",
-  "height",
-  "startOffset",
-  "font-size",
-]);
 
 function noDocument(): Outcome {
   return Outcome.refused(Kind.Change, new NoDocument());
@@ -156,204 +110,22 @@ function parentReference(ref: NodeRef): boolean {
   return !(ref instanceof RootRef);
 }
 
-function translatedParams(
-  node: Node,
-  dx: LengthPercentage,
-  dy: LengthPercentage,
-): Node | null {
-  const moveX = (value: LengthPercentage): LengthPercentage | null =>
-    sumLengths(value, dx);
-  const moveY = (value: LengthPercentage): LengthPercentage | null =>
-    sumLengths(value, dy);
-  if (node instanceof Rect) {
-    const x = moveX(node.x);
-    const y = moveY(node.y);
-    return x === null || y === null
-      ? null
-      : new Rect(x, y, node.width, node.height, node.identity, node.paint, node.transformAttr);
-  }
-  if (node instanceof Circle) {
-    const cx = moveX(node.cx);
-    const cy = moveY(node.cy);
-    return cx === null || cy === null
-      ? null
-      : new Circle(cx, cy, node.radius, node.identity, node.paint, node.transformAttr);
-  }
-  if (node instanceof Ellipse) {
-    const cx = moveX(node.cx);
-    const cy = moveY(node.cy);
-    return cx === null || cy === null
-      ? null
-      : new Ellipse(cx, cy, node.radiusX, node.radiusY, node.identity, node.paint, node.transformAttr);
-  }
-  if (node instanceof Line) {
-    const x1 = moveX(node.x1);
-    const y1 = moveY(node.y1);
-    const x2 = moveX(node.x2);
-    const y2 = moveY(node.y2);
-    return x1 === null || y1 === null || x2 === null || y2 === null
-      ? null
-      : new Line(x1, y1, x2, y2, node.identity, node.paint, node.transformAttr);
-  }
-  if (node instanceof Polygon) {
-    const points: Coordinate[] = [];
-    for (const point of node.points) {
-      const x = moveX(point.x);
-      const y = moveY(point.y);
-      if (x === null || y === null) {
-        return null;
-      }
-      points.push(new Coordinate(x, y));
-    }
-    return new Polygon(
-      points,
-      node.identity,
-      node.paint,
-      node.transformAttr,
-    );
-  }
-  if (node instanceof TextNode) {
-    const common = node.common;
-    const x = common.x === null ? null : moveX(common.x);
-    const y = common.y === null ? null : moveY(common.y);
-    if ((common.x !== null && x === null) || (common.y !== null && y === null)) {
-      return null;
-    }
-    return textWithCommon(node, x, y, common.dx, common.dy);
-  }
-  return null;
-}
-
-function textWithCommon(
-  node: TextNode,
-  x: LengthPercentage | null,
-  y: LengthPercentage | null,
-  dx: LengthPercentage | null,
-  dy: LengthPercentage | null,
-): Node {
-  const common = node.common;
-  const replacement = new TextCommon(
-    x,
-    y,
-    dx,
-    dy,
-    common.textAnchor,
-    common.fontSize,
-  );
-  if (node instanceof TextWrapper) {
-    return new TextWrapper(
-      replacement,
-      node.identity,
-      node.paint,
-      node.transformAttr,
-    );
-  }
-  if (node instanceof Tspan) {
-    return new Tspan(
-      replacement,
-      node.identity,
-      node.paint,
-      node.transformAttr,
-    );
-  }
-  if (node instanceof TextPath) {
-    return new TextPath(
-      node.startOffset,
-      node.href,
-      replacement,
-      node.identity,
-      node.paint,
-      node.transformAttr,
-    );
-  }
-  return node;
-}
-
-function scaledParams(node: Node, factor: number): Node | null {
-  if (
-    node instanceof Rect ||
-    node instanceof Circle ||
-    node instanceof Ellipse ||
-    node instanceof Line ||
-    node instanceof Polygon ||
-    node instanceof TextNode
-  ) {
-    const source = node;
-    if (source instanceof Rect) {
-      return new Rect(
-        source.x.scaled(factor),
-        source.y.scaled(factor),
-        source.width.scaled(factor),
-        source.height.scaled(factor),
-        source.identity,
-        source.paint,
-        source.transformAttr,
-      );
-    }
-    if (source instanceof Circle) {
-      return new Circle(
-        source.cx.scaled(factor),
-        source.cy.scaled(factor),
-        source.radius.scaled(factor),
-        source.identity,
-        source.paint,
-        source.transformAttr,
-      );
-    }
-    if (source instanceof Ellipse) {
-      return new Ellipse(
-        source.cx.scaled(factor),
-        source.cy.scaled(factor),
-        source.radiusX.scaled(factor),
-        source.radiusY.scaled(factor),
-        source.identity,
-        source.paint,
-        source.transformAttr,
-      );
-    }
-    if (source instanceof Line) {
-      return new Line(
-        source.x1.scaled(factor),
-        source.y1.scaled(factor),
-        source.x2.scaled(factor),
-        source.y2.scaled(factor),
-        source.identity,
-        source.paint,
-        source.transformAttr,
-      );
-    }
-    if (source instanceof Polygon) {
-      return new Polygon(
-        source.points.map((point) => point.scaled(factor)),
-        source.identity,
-        source.paint,
-        source.transformAttr,
-      );
-    }
-    const common = source.common;
-    return textWithCommon(
-      source,
-      common.x?.scaled(factor) ?? null,
-      common.y?.scaled(factor) ?? null,
-      common.dx?.scaled(factor) ?? null,
-      common.dy?.scaled(factor) ?? null,
-    );
-  }
-  return null;
-}
-
 function carriesTransform(node: Node): boolean {
   return node instanceof ElementNode &&
     !node.transformAttr.transform.isIdentity();
 }
 
 export class Editor {
-  private readonly historyEvents = new Map<number, EditEvent>();
+  private readonly replay: History;
+  private readonly naming: NodeNaming;
 
   public constructor(
     private readonly document: Document,
-    private readonly defaultHistoryLimit = 20,
-  ) {}
+    defaultHistoryLimit = 20,
+  ) {
+    this.replay = new History(document, defaultHistoryLimit);
+    this.naming = new NodeNaming(document);
+  }
 
   public create(command: CreateIntent): Outcome {
     if (!this.document.hasDocument()) {
@@ -365,7 +137,7 @@ export class Editor {
     if (reservedSvgId(command.id)) {
       return Outcome.refused(Kind.Change, new ReservedId(command.id));
     }
-    const problem = this.createDimensions(command);
+    const problem = createDimensions(command);
     if (problem !== null) {
       return Outcome.refused(Kind.Change, problem);
     }
@@ -705,7 +477,7 @@ export class Editor {
         new UnknownAttribute(command.attributeName),
       );
     }
-    const lengthValue = this.lengthValueOf(command);
+    const lengthValue = lengthValueOf(command);
     if (source instanceof Group && source.dataKind === "box") {
       const candidate = (command as unknown as { value?: unknown }).value;
       if (command.attributeName === "fill" && candidate instanceof Paint) {
@@ -768,7 +540,7 @@ export class Editor {
       const event = new AttributeSet(
         this.nodeName(id),
         command.attributeName,
-        this.attributeText(command),
+        attributeText(command),
       );
       this.record(event);
       return Outcome.happened(Kind.Change, event);
@@ -779,57 +551,15 @@ export class Editor {
   }
 
   public undo(): Outcome {
-    if (!this.document.canUndo()) {
-      return Outcome.refused(
-        Kind.Change,
-        this.document.undoBarredByIo()
-          ? new UndoAfterIo()
-          : new NothingToUndo(),
-      );
-    }
-    const leaving = this.document.commitId();
-    this.document.undo();
-    const event = new Undone(
-      this.document.position(),
-      this.document.depth(),
-      this.historyEvents.get(leaving) ?? null,
-      this.document.commitId(),
-    );
-    return Outcome.happened(Kind.Change, event);
+    return this.replay.undo();
   }
 
   public redo(): Outcome {
-    if (!this.document.canRedo()) {
-      return Outcome.refused(Kind.Change, new NothingToRedo());
-    }
-    this.document.redo();
-    const entered = this.document.commitAt(this.document.position() - 1);
-    const event = new Redone(
-      this.document.position(),
-      this.document.depth(),
-      entered === undefined ? null : (this.historyEvents.get(entered) ?? null),
-      this.document.commitId(),
-    );
-    return Outcome.happened(Kind.Change, event);
+    return this.replay.redo();
   }
 
   public checkout(command: Checkout): Outcome {
-    const moved = this.document.checkout(command.commit);
-    if (moved === undefined) {
-      return Outcome.refused(Kind.Change, new UnknownCommit(command.commit));
-    }
-    const timeline = this.history(command.limit);
-    return Outcome.happened(
-      Kind.Change,
-      new CheckedOut(
-        moved.position,
-        this.document.depth(),
-        command.commit,
-        moved.noEffect,
-        timeline.baseline,
-        timeline.entries,
-      ),
-    );
+    return this.replay.checkout(command);
   }
 
   public setCanvas(command: SetCanvas): Outcome {
@@ -867,7 +597,7 @@ export class Editor {
       edit.update(root, replacement);
       edit.commit();
       this.document.clearHistory(true);
-      this.historyEvents.clear();
+      this.replay.clear();
       return Outcome.happened(
         Kind.Change,
         new CanvasSet(replacement.width, replacement.height),
@@ -879,31 +609,11 @@ export class Editor {
   }
 
   public history(limit: number | null = null): HistoryView {
-    const depth = this.document.depth();
-    const entries: HistoryEntry[] = [];
-    for (let position = 0; position < depth; position += 1) {
-      const commit = this.document.commitAt(position);
-      const event = commit === undefined ? undefined : this.historyEvents.get(commit);
-      if (commit !== undefined && event !== undefined) {
-        entries.push(new HistoryEntry(commit, event, position));
-      }
-    }
-    const cap = Math.max(0, limit ?? this.defaultHistoryLimit);
-    const selected =
-      entries.length <= cap
-        ? entries
-        : entries.slice(Math.max(0, entries.length - cap));
-    return {
-      baseline: this.document.baselineCommit(),
-      head: this.document.commitId(),
-      position: this.document.position(),
-      depth,
-      entries: selected,
-    };
+    return this.replay.view(limit);
   }
 
   public forgetHistory(): void {
-    this.historyEvents.clear();
+    this.replay.clear();
   }
 
   private transformNode(
@@ -961,14 +671,14 @@ export class Editor {
 
     if (mode === EditMode.Params) {
       const replacement = scaling
-        ? scaledParams(source, (command as ScaleBy).factor)
-        : translatedParams(
+        ? scaleParams(source, (command as ScaleBy).factor)
+        : translateParams(
             source,
             (command as Move).dx,
             (command as Move).dy,
           );
       if (replacement === null) {
-        const existing = this.firstParam(source);
+        const existing = firstParam(source);
         return Outcome.refused(
           Kind.Change,
           existing === null
@@ -994,12 +704,12 @@ export class Editor {
       ? this.planCascade(
           id,
           Transform.scaled((command as ScaleBy).factor),
-          (node) => scaledParams(node, (command as ScaleBy).factor),
+          (node) => scaleParams(node, (command as ScaleBy).factor),
         )
       : this.planCascade(
           id,
           Transform.translated((command as Move).dx, (command as Move).dy),
-          (node) => translatedParams(node, (command as Move).dx, (command as Move).dy),
+          (node) => translateParams(node, (command as Move).dx, (command as Move).dy),
         );
     if (plan instanceof Refusal) {
       return Outcome.refused(Kind.Change, plan);
@@ -1229,30 +939,6 @@ export class Editor {
     }
   }
 
-  private createDimensions(command: CreateIntent): Refusal | null {
-    const values: [string, LengthPercentage, boolean][] = [];
-    if (command instanceof CreateRectValue) {
-      values.push(["x", command.x, false], ["y", command.y, false], ["width", command.width, true], ["height", command.height, true]);
-    } else if (command instanceof CreateCircleValue) {
-      values.push(["cx", command.cx, false], ["cy", command.cy, false], ["r", command.radius, true]);
-    } else if (command instanceof CreateEllipseValue) {
-      values.push(["cx", command.cx, false], ["cy", command.cy, false], ["rx", command.radiusX, true], ["ry", command.radiusY, true]);
-    } else if (command instanceof CreateLineValue) {
-      values.push(["x1", command.x1, false], ["y1", command.y1, false], ["x2", command.x2, false], ["y2", command.y2, false]);
-    } else if (command instanceof CreateTextValue) {
-      values.push(["x", command.x, false], ["y", command.y, false]);
-    }
-    for (const [name, value, nonnegative] of values) {
-      if (!Number.isFinite(value.value)) {
-        return new NonFiniteValue(name);
-      }
-      if (nonnegative && value.value < 0) {
-        return new NegativeDimension(name);
-      }
-    }
-    return null;
-  }
-
   private appendCreatedChildren(
     edit: ReturnType<Document["transaction"]>,
     parent: Vid,
@@ -1264,60 +950,8 @@ export class Editor {
     }
   }
 
-  private lengthValueOf(command: AttributeCommand): LengthPercentage | null {
-    if (!LENGTH_ATTRIBUTES.has(command.attributeName)) {
-      return null;
-    }
-    const candidate = (command as unknown as { value?: unknown }).value;
-    return candidate instanceof LengthPercentage ? candidate : null;
-  }
-
-  private firstParam(node: Node): LengthPercentage | null {
-    if (node instanceof Rect || node instanceof Circle || node instanceof Ellipse) {
-      return node instanceof Rect
-        ? node.x
-        : node instanceof Circle
-          ? node.cx
-          : node.cx;
-    }
-    if (node instanceof Line) {
-      return node.x1;
-    }
-    if (node instanceof Polygon) {
-      return node.points[0]?.x ?? null;
-    }
-    if (node instanceof TextNode) {
-      return node.common.x;
-    }
-    return null;
-  }
-
-  private attributeText(command: AttributeCommand): string {
-    const candidate = (command as unknown as { value?: unknown }).value;
-    if (candidate instanceof LengthPercentage) {
-      return candidate.toDisplayText();
-    }
-    if (candidate instanceof Paint) {
-      return candidate.toSvgText();
-    }
-    if (candidate instanceof Transform) {
-      return candidate.toDisplayText() || "none";
-    }
-    if (candidate instanceof ViewBox) {
-      return candidate.toDisplayText();
-    }
-    if (
-      typeof candidate === "string" ||
-      typeof candidate === "number" ||
-      typeof candidate === "boolean"
-    ) {
-      return String(candidate);
-    }
-    return command.attributeName;
-  }
-
   private record(event: EditEvent): void {
-    this.historyEvents.set(this.document.commitId(), event);
+    this.replay.record(event);
   }
 
   private missing(ref: NodeRef): Outcome {
@@ -1330,65 +964,22 @@ export class Editor {
   }
 
   private nodeName(id: Vid): NodeName {
-    const node = this.document.node(id);
-    if (node instanceof ElementNode) {
-      return new NodeName(
-        node instanceof Group && node.dataKind !== null
-          ? node.dataKind
-          : node.elementName,
-        node.id,
-      );
-    }
-    return new NodeName("#text", `#${String(id)}`);
+    return this.naming.node(id);
   }
 
   private nameOfNode(node: Node): NodeName {
-    return node instanceof ElementNode
-      ? new NodeName(node.elementName, node.id)
-      : new NodeName("#text", "");
+    return this.naming.name(node);
   }
 
   private inside(candidate: Vid, ancestor: Vid): boolean {
-    let current: Vid | undefined = candidate;
-    while (current !== undefined) {
-      if (current === ancestor) {
-        return true;
-      }
-      current = this.document.parent(current);
-    }
-    return false;
+    return this.naming.inside(candidate, ancestor);
   }
 
   private countElementsBelow(id: Vid): number {
-    let count = 0;
-    const pending = [...this.document.children(id)];
-    while (pending.length > 0) {
-      const child = pending.pop();
-      if (child === undefined) {
-        continue;
-      }
-      if (this.document.node(child) instanceof ElementNode) {
-        count += 1;
-      }
-      pending.push(...this.document.children(child));
-    }
-    return count;
+    return this.naming.elementCountBelow(id);
   }
 
   private topLevelName(): string {
-    const root = this.document.node(this.document.root());
-    return root instanceof ElementNode && root.id !== ""
-      ? root.id
-      : "/";
+    return this.naming.topLevel();
   }
 }
-
-// Structural imports kept behind aliases so the creation switch in this file remains
-// visually separate from the semantic branches above.
-import {
-  CreateCircle as CreateCircleValue,
-  CreateEllipse as CreateEllipseValue,
-  CreateLine as CreateLineValue,
-  CreateRect as CreateRectValue,
-  CreateText as CreateTextValue,
-} from "../protocol/cmd/Create.js";

@@ -13,4 +13,5 @@ export * from "./event/EditEvent.js";
 export * from "./event/HistoryEntry.js";
 export * from "./refusal/Refusal.js";
 export * from "./view/View.js";
+export * from "./view/CanvasText.js";
 

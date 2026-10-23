@@ -90,7 +90,6 @@ import {
   createDimensions,
   firstParam,
   lengthValueOf,
-  NONNEGATIVE_ATTRIBUTES,
 } from "./attributes.js";
 import { History } from "./history/History.js";
 import { NodeNaming } from "./naming.js";
@@ -479,14 +478,14 @@ export class Editor {
     }
     const lengthValue = lengthValueOf(command);
     if (source instanceof Group && source.dataKind === "box") {
-      const candidate = (command as unknown as { value?: unknown }).value;
+      const candidate = command.value;
       if (command.attributeName === "fill" && candidate instanceof Paint) {
         return this.setBoxFill(id, candidate);
       }
     }
     if (
       lengthValue !== null &&
-      NONNEGATIVE_ATTRIBUTES.has(command.attributeName) &&
+      command.spec.options.nonnegative &&
       lengthValue.value < 0
     ) {
       return Outcome.refused(
@@ -495,8 +494,8 @@ export class Editor {
       );
     }
     const opacity =
-      command.attributeName === "opacity"
-        ? (command as unknown as { value?: unknown }).value
+      command.spec.options.opacity
+        ? command.value
         : undefined;
     if (
       typeof opacity === "number" &&
@@ -506,6 +505,7 @@ export class Editor {
     }
     if (
       lengthValue !== null &&
+      command.spec.options.canvasDimension &&
       command.attributeName === "width" &&
       source instanceof Svg &&
       lengthValue.value <= 0
@@ -517,6 +517,7 @@ export class Editor {
     }
     if (
       lengthValue !== null &&
+      command.spec.options.canvasDimension &&
       command.attributeName === "height" &&
       source instanceof Svg &&
       lengthValue.value <= 0

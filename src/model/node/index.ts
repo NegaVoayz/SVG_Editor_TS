@@ -17,3 +17,4 @@ export * from "./TextNode.js";
 export * from "./TextPath.js";
 export * from "./TextWrapper.js";
 export * from "./Tspan.js";
+export * from "./textCommonNode.js";

@@ -15,7 +15,8 @@ import {
   Rect,
   RootRef,
   ScaleBy,
-  SetFill,
+  AttributeCommand,
+  ATTRIBUTES,
   ShapeRegistry,
   SvgIdRef,
   parseColor,
@@ -67,11 +68,15 @@ describe("editor commands", () => {
     const color = parseColor("red");
     expect(color).not.toBeNull();
     if (color !== null) {
-      expect(
-        editor.setAttribute(
-          new SetFill(color).at(new SvgIdRef("r")),
-        ).ok(),
-      ).toBe(true);
+      const fill = ATTRIBUTES["fill"];
+      expect(fill).toBeDefined();
+      if (fill !== undefined) {
+        expect(
+          editor.setAttribute(
+            new AttributeCommand(fill, color).at(new SvgIdRef("r")),
+          ).ok(),
+        ).toBe(true);
+      }
     }
     expect(editor.undo().ok()).toBe(true);
     expect(

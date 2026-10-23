@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   Document,
   Group,
+  ATTRIBUTES,
+  AttributeCommand,
   Length,
   Rect,
-  SetFill,
-  SetX,
   TreeQuery,
   parseColor,
 } from "../src/index.js";
@@ -45,7 +45,12 @@ describe("protocol projections", () => {
       new Length(10),
       new Length(10),
     );
-    const moved = new SetX(new Length(5)).applyTo(shape);
+    const xSpec = ATTRIBUTES["x"];
+    expect(xSpec).toBeDefined();
+    const moved =
+      xSpec === undefined
+        ? null
+        : new AttributeCommand(xSpec, new Length(5)).applyTo(shape);
     expect(moved).toBeInstanceOf(Rect);
     expect(shape.x.value).toBe(0);
     if (moved instanceof Rect) {
@@ -55,7 +60,11 @@ describe("protocol projections", () => {
     const color = parseColor("red");
     expect(color).not.toBeNull();
     if (color !== null) {
-      const filled = new SetFill(color).applyTo(shape);
+      const fillSpec = ATTRIBUTES["fill"];
+      const filled =
+        fillSpec === undefined
+          ? null
+          : new AttributeCommand(fillSpec, color).applyTo(shape);
       expect(filled?.paint.fill?.toSvgText()).toBe("red");
     }
   });

@@ -19,49 +19,13 @@ import {
 } from "../protocol/refusal/Refusal.js";
 import { nodeExtent } from "./shape/ExtentVisitor.js";
 
-export const NONNEGATIVE_ATTRIBUTES = new Set([
-  "w",
-  "h",
-  "r",
-  "rx",
-  "ry",
-  "stroke-width",
-  "width",
-  "height",
-  "font-size",
-]);
-
-export const LENGTH_ATTRIBUTES = new Set([
-  "x",
-  "y",
-  "w",
-  "h",
-  "cx",
-  "cy",
-  "r",
-  "rx",
-  "ry",
-  "x1",
-  "y1",
-  "x2",
-  "y2",
-  "dx",
-  "dy",
-  "stroke-width",
-  "width",
-  "height",
-  "startOffset",
-  "font-size",
-]);
-
 export function lengthValueOf(
   command: AttributeCommand,
 ): LengthPercentage | null {
-  if (!LENGTH_ATTRIBUTES.has(command.attributeName)) {
-    return null;
-  }
-  const candidate = (command as unknown as { value?: unknown }).value;
-  return candidate instanceof LengthPercentage ? candidate : null;
+  return command.spec.options.lengthValue &&
+    command.value instanceof LengthPercentage
+    ? command.value
+    : null;
 }
 
 export function firstParam(
@@ -71,7 +35,7 @@ export function firstParam(
 }
 
 export function attributeText(command: AttributeCommand): string {
-  const candidate = (command as unknown as { value?: unknown }).value;
+  const candidate = command.value;
   if (candidate instanceof LengthPercentage) {
     return candidate.toDisplayText();
   }

@@ -1,45 +1,12 @@
 import type { LengthPercentage } from "../model/values/LengthPercentage.js";
-import { parsePaint } from "../model/values/Color.js";
 import { parseLength, parseNumber } from "../model/values/parseValues.js";
-import { TextAnchor } from "../model/node/TextNode.js";
-import { Transform } from "../model/values/Transform.js";
-import { ViewBox } from "../model/values/ViewBox.js";
 import type { ShapeRegistry } from "../plugin/Registry.js";
 import { ProviderParseError } from "../plugin/ShapeProvider.js";
+import { AttributeCommand } from "../protocol/attr/AttributeCommand.js";
 import {
-  SetClass,
-  SetContent,
-  SetCx,
-  SetCy,
-  SetDx,
-  SetDy,
-  SetFill,
-  SetFontSize,
-  SetH,
-  SetHeight,
-  SetHref,
-  SetOpacity,
-  SetR,
-  SetRx,
-  SetRy,
-  SetStartOffset,
-  SetStroke,
-  SetStrokeWidth,
-  SetText,
-  SetTextAnchor,
-  SetTransform,
-  SetViewBox,
-  SetW,
-  SetWidth,
-  SetX,
-  SetX1,
-  SetX2,
-  SetXmlns,
-  SetY,
-  SetY1,
-  SetY2,
-} from "../protocol/attr/SetCommands.js";
-import type { AttributeCommand } from "../protocol/attr/AttributeCommand.js";
+  ATTRIBUTES,
+  AttributeParseError,
+} from "../protocol/attr/spec.js";
 import type { Command } from "../protocol/cmd/Command.js";
 import {
   AddTo,
@@ -452,92 +419,19 @@ export class IntentParser {
   }
 
   private attribute(name: string, value: string): AttributeCommand {
-    switch (name) {
-      case "x": return new SetX(lengthOf(value));
-      case "y": return new SetY(lengthOf(value));
-      case "w": return new SetW(lengthOf(value));
-      case "h": return new SetH(lengthOf(value));
-      case "cx": return new SetCx(lengthOf(value));
-      case "cy": return new SetCy(lengthOf(value));
-      case "r": return new SetR(lengthOf(value));
-      case "rx": return new SetRx(lengthOf(value));
-      case "ry": return new SetRy(lengthOf(value));
-      case "x1": return new SetX1(lengthOf(value));
-      case "y1": return new SetY1(lengthOf(value));
-      case "x2": return new SetX2(lengthOf(value));
-      case "y2": return new SetY2(lengthOf(value));
-      case "dx": return new SetDx(lengthOf(value));
-      case "dy": return new SetDy(lengthOf(value));
-      case "stroke-width": return new SetStrokeWidth(lengthOf(value));
-      case "opacity": {
-        const opacity = parseNumber(value);
-        if (opacity === null) {
-          throw new ParserFailure(`cannot read '${value}' as an opacity`);
-        }
-        return new SetOpacity(opacity);
+    const spec = ATTRIBUTES[name === "label" ? "text" : name];
+    if (spec === undefined) {
+      throw new ParserFailure(
+        `error: unknown attribute: "${name}"`,
+      );
+    }
+    try {
+      return new AttributeCommand(spec, spec.parse(value));
+    } catch (error: unknown) {
+      if (error instanceof AttributeParseError) {
+        throw new ParserFailure(error.message);
       }
-      case "width": return new SetWidth(lengthOf(value));
-      case "height": return new SetHeight(lengthOf(value));
-      case "startOffset": return new SetStartOffset(lengthOf(value));
-      case "xmlns": return new SetXmlns(value);
-      case "viewBox": {
-        const box = ViewBox.parse(value);
-        if (box === null) {
-          throw new ParserFailure(
-            `cannot read '${value}' as a viewBox: four finite numbers, with a non-negative width and height`,
-          );
-        }
-        return new SetViewBox(box);
-      }
-      case "text-anchor": {
-        const anchor =
-          value.toLowerCase() === "start"
-            ? TextAnchor.Start
-            : value.toLowerCase() === "middle"
-              ? TextAnchor.Middle
-              : value.toLowerCase() === "end"
-                ? TextAnchor.End
-                : null;
-        if (anchor === null) {
-          throw new ParserFailure(
-            `cannot read '${value}' as a text-anchor: start, middle or end`,
-          );
-        }
-        return new SetTextAnchor(anchor);
-      }
-      case "font-size": return new SetFontSize(lengthOf(value));
-      case "class": return new SetClass(value);
-      case "fill": {
-        const paint = parsePaint(value);
-        if (paint === null) {
-          throw new ParserFailure(`cannot read '${value}' as a fill`);
-        }
-        return new SetFill(paint);
-      }
-      case "stroke": {
-        const paint = parsePaint(value);
-        if (paint === null) {
-          throw new ParserFailure(`cannot read '${value}' as a stroke`);
-        }
-        return new SetStroke(paint);
-      }
-      case "transform": {
-        const transform = Transform.parse(value);
-        if (transform === null) {
-          throw new ParserFailure(
-            `cannot read '${value}' as a transform list`,
-          );
-        }
-        return new SetTransform(transform);
-      }
-      case "href": return new SetHref(value);
-      case "text":
-      case "label": return new SetText(value);
-      case "content": return new SetContent(value);
-      default:
-        throw new ParserFailure(
-          `error: unknown attribute: "${name}"`,
-        );
+      throw error;
     }
   }
 }

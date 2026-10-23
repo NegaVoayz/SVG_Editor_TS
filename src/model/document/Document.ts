@@ -5,10 +5,8 @@ import { SvgReader, SvgReadError } from "../../io/SvgReader.js";
 import { SvgLoader } from "../../io/Loader.js";
 import { SvgSerializer } from "../../io/SvgSerializer.js";
 import type { Node } from "../node/index.js";
-import type {
-  TouchedNode,
-  TreeEdit,
-} from "../store/TreeStore.js";
+import type { TouchedNode } from "../store/TreeStore.js";
+import type { TreeEdit } from "../store/TreeLinks.js";
 import { TreeStore } from "../store/TreeStore.js";
 import type { CommitId, Vid } from "../store/hiveState.js";
 import type { LengthPercentage } from "../values/LengthPercentage.js";

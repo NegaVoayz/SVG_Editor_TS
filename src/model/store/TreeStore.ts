@@ -1,13 +1,23 @@
-import { ContainerNode, ElementNode, PlainTextNode, Svg, TextNode } from "../node/index.js";
-import type { Node } from "../node/index.js";
+import {
+  isElementNode,
+  Svg,
+  type Node,
+} from "../node/index.js";
 import type { IdentityAttr } from "../values/IdentityAttr.js";
 import { Length } from "../values/Length.js";
 import type { LengthPercentage } from "../values/LengthPercentage.js";
 import { Transform } from "../values/Transform.js";
 import { Hive } from "./Hive.js";
-import type { HiveTransaction } from "./HiveTransaction.js";
 import type { CommitId, DiffKind, Vid } from "./hiveState.js";
 import type { Snapshot } from "./Snapshot.js";
+import { TreeIndex, type TreeReadView } from "./TreeIndex.js";
+import {
+  NodeLinks,
+  TreeRecord,
+  TreeStructure,
+  type TreeEdit,
+} from "./TreeLinks.js";
+import { TreeText } from "./TreeText.js";
 
 export const NO_ID = -1;
 
@@ -18,75 +28,11 @@ export interface TouchedNode {
   readonly kind: TouchedKind;
 }
 
-export class NodeLinks {
-  public constructor(
-    public readonly parent: Vid | null = null,
-    public readonly previous: Vid | null = null,
-    public readonly next: Vid | null = null,
-    public readonly firstChild: Vid | null = null,
-    public readonly lastChild: Vid | null = null,
-  ) {}
-
-  public withParent(parent: Vid | null): NodeLinks {
-    return new NodeLinks(
-      parent,
-      this.previous,
-      this.next,
-      this.firstChild,
-      this.lastChild,
-    );
-  }
-
-  public withSiblings(
-    previous: Vid | null,
-    next: Vid | null,
-  ): NodeLinks {
-    return new NodeLinks(
-      this.parent,
-      previous,
-      next,
-      this.firstChild,
-      this.lastChild,
-    );
-  }
-
-  public withChildren(
-    firstChild: Vid | null,
-    lastChild: Vid | null,
-  ): NodeLinks {
-    return new NodeLinks(
-      this.parent,
-      this.previous,
-      this.next,
-      firstChild,
-      lastChild,
-    );
-  }
-}
-
-export class TreeRecord {
-  public constructor(
-    public readonly node: Node,
-    public readonly links: NodeLinks,
-  ) {}
-
-  public withNode(node: Node): TreeRecord {
-    return new TreeRecord(node, this.links);
-  }
-
-  public withLinks(links: NodeLinks): TreeRecord {
-    return new TreeRecord(this.node, links);
-  }
-}
-
-export type TreeEdit = HiveTransaction<TreeRecord>;
-
-function isParentCapable(node: Node): boolean {
-  return node instanceof ContainerNode || node instanceof TextNode;
-}
-
-export class TreeStore {
+export class TreeStore implements TreeReadView {
   private readonly hive = new Hive<TreeRecord>();
+  private readonly structure = new TreeStructure();
+  private readonly index = new TreeIndex();
+  private readonly text = new TreeText();
   private view: Snapshot<TreeRecord> | undefined;
   private rootId: Vid = NO_ID;
   private readonly checkouts: CommitId[] = [];
@@ -105,10 +51,7 @@ export class TreeStore {
     const edit = this.beginLoad();
     this.rootId = this.createRoot(
       edit,
-      new Svg(
-        width ?? new Length(800),
-        height ?? new Length(600),
-      ),
+      new Svg(width ?? new Length(800), height ?? new Length(600)),
     );
     this.commit(edit);
     this.clearHistory();
@@ -211,7 +154,13 @@ export class TreeStore {
 
   public checkout(
     commit: CommitId,
-  ): { readonly position: number; readonly touched: readonly TouchedNode[]; readonly noEffect: boolean } | undefined {
+  ):
+    | {
+        readonly position: number;
+        readonly touched: readonly TouchedNode[];
+        readonly noEffect: boolean;
+      }
+    | undefined {
     const target = this.checkouts.indexOf(commit);
     if (target < 0 || this.view === undefined) {
       return undefined;
@@ -288,77 +237,37 @@ export class TreeStore {
 
   public transform(id: Vid): Transform {
     const node = this.node(id);
-    return node instanceof ElementNode
+    return node !== undefined && isElementNode(node)
       ? node.transformAttr.transform
       : Transform.identity();
   }
 
   public find(svgId: string): Vid | undefined {
-    if (svgId === "" || !this.hasDocument()) {
-      return undefined;
-    }
-    const pending = [this.rootId];
-    while (pending.length > 0) {
-      const id = pending.pop();
-      if (id === undefined) {
-        continue;
-      }
-      const node = this.node(id);
-      if (node instanceof ElementNode && node.id === svgId) {
-        return id;
-      }
-      pending.push(...this.children(id));
-    }
-    return undefined;
+    return this.hasDocument()
+      ? this.index.find(this, this.rootId, svgId)
+      : undefined;
   }
 
   public elementCount(): number {
-    if (!this.hasDocument()) {
-      return 0;
-    }
-    let count = 0;
-    const pending = [...this.children(this.rootId)];
-    while (pending.length > 0) {
-      const id = pending.pop();
-      if (id === undefined) {
-        continue;
-      }
-      if (this.node(id) instanceof ElementNode) {
-        count += 1;
-      }
-      pending.push(...this.children(id));
-    }
-    return count;
+    return this.hasDocument()
+      ? this.index.elementCount(this, this.rootId)
+      : 0;
   }
 
   public textContent(id: Vid): string {
-    let content = "";
-    const pending = [...this.children(id)].reverse();
-    while (pending.length > 0) {
-      const child = pending.pop();
-      if (child === undefined) {
-        continue;
-      }
-      const node = this.node(child);
-      if (node instanceof PlainTextNode) {
-        content += node.content;
-      } else {
-        pending.push(...[...this.children(child)].reverse());
-      }
-    }
-    return content;
+    return this.text.content(this, id);
   }
 
   public directText(id: Vid): string {
-    return this.children(id)
-      .map((child) => this.node(child))
-      .filter((node): node is PlainTextNode => node instanceof PlainTextNode)
-      .map((node) => node.content)
-      .join("");
+    return this.text.direct(this, id);
   }
 
   public hasDocument(): boolean {
-    return this.view !== undefined && this.rootId !== NO_ID && this.hasNode(this.rootId);
+    return (
+      this.view !== undefined &&
+      this.rootId !== NO_ID &&
+      this.hasNode(this.rootId)
+    );
   }
 
   public createRoot(edit: TreeEdit, node: Node): Vid {
@@ -384,35 +293,7 @@ export class TreeStore {
     before: Vid | null,
     node: Node,
   ): Vid {
-    this.requireParent(edit, parent);
-    this.requireSibling(edit, parent, before);
-    const parentRecord = this.requireStaged(edit, parent);
-    const previous =
-      before === null
-        ? parentRecord.links.lastChild
-        : this.requireStaged(edit, before).links.previous;
-    const id = edit.emplace(
-      new TreeRecord(node, new NodeLinks(parent, previous, before)),
-    );
-    if (previous !== null) {
-      this.replaceLinks(edit, previous, (links) =>
-        links.withSiblings(links.previous, id),
-      );
-    } else {
-      this.replaceLinks(edit, parent, (links) =>
-        links.withChildren(id, links.lastChild),
-      );
-    }
-    if (before === null) {
-      this.replaceLinks(edit, parent, (links) =>
-        links.withChildren(links.firstChild, id),
-      );
-    } else {
-      this.replaceLinks(edit, before, (links) =>
-        links.withSiblings(id, links.next),
-      );
-    }
-    return id;
+    return this.structure.insertAt(edit, parent, before, node);
   }
 
   public attachAt(
@@ -421,86 +302,15 @@ export class TreeStore {
     before: Vid | null,
     node: Vid,
   ): void {
-    this.requireParent(edit, parent);
-    this.requireSibling(edit, parent, before);
-    if (node === this.rootId || node === parent) {
-      throw new Error("TreeStore: the node cannot be moved there");
-    }
-    if (this.isDescendant(edit, parent, node)) {
-      throw new Error("TreeStore: a node cannot move inside itself");
-    }
-    if (before === node) {
-      throw new Error("TreeStore: a node cannot be placed before itself");
-    }
-    if (edit.find(node) === undefined) {
-      throw new RangeError("TreeStore: no live node at this id");
-    }
-
-    this.detach(edit, node);
-    const parentRecord = this.requireStaged(edit, parent);
-    const previous =
-      before === null
-        ? parentRecord.links.lastChild
-        : this.requireStaged(edit, before).links.previous;
-    this.replaceLinks(edit, node, (links) =>
-      links.withParent(parent).withSiblings(previous, before),
-    );
-
-    if (previous !== null) {
-      this.replaceLinks(edit, previous, (links) =>
-        links.withSiblings(links.previous, node),
-      );
-    } else {
-      this.replaceLinks(edit, parent, (links) =>
-        links.withChildren(node, links.lastChild),
-      );
-    }
-
-    if (before !== null) {
-      this.replaceLinks(edit, before, (links) =>
-        links.withSiblings(node, links.next),
-      );
-    } else {
-      this.replaceLinks(edit, parent, (links) =>
-        links.withChildren(links.firstChild, node),
-      );
-    }
+    this.structure.attachAt(edit, this.rootId, parent, before, node);
   }
 
   public update(edit: TreeEdit, id: Vid, payload: Node): void {
-    const stored = this.requireStaged(edit, id);
-    if (isParentCapable(stored.node) !== isParentCapable(payload)) {
-      throw new Error(
-        "TreeStore: an update cannot change whether a node holds children",
-      );
-    }
-    edit.replace(id, stored.withNode(payload));
+    this.structure.update(edit, id, payload);
   }
 
   public eraseSubtree(edit: TreeEdit, node: Vid): void {
-    if (node === this.rootId) {
-      throw new Error("TreeStore: the root cannot be erased");
-    }
-    this.requireStaged(edit, node);
-    this.detach(edit, node);
-    const doomed: Vid[] = [];
-    const pending = [node];
-    while (pending.length > 0) {
-      const id = pending.pop();
-      if (id === undefined) {
-        continue;
-      }
-      const current = this.requireStaged(edit, id);
-      doomed.push(id);
-      let child = current.links.firstChild;
-      while (child !== null) {
-        pending.push(child);
-        child = this.requireStaged(edit, child).links.next;
-      }
-    }
-    for (const id of doomed) {
-      edit.erase(id);
-    }
+    this.structure.eraseSubtree(edit, this.rootId, node);
   }
 
   public replaceNodeLinks(
@@ -508,103 +318,26 @@ export class TreeStore {
     id: Vid,
     replacement: NodeLinks,
   ): void {
-    const record = this.requireStaged(edit, id);
+    const record = this.record(id);
+    if (record === undefined) {
+      throw new RangeError("TreeStore: no live node at this id");
+    }
     edit.replace(id, record.withLinks(replacement));
   }
 
   public identity(id: Vid): IdentityAttr | undefined {
     const node = this.node(id);
-    return node instanceof ElementNode ? node.identity : undefined;
+    return node !== undefined && isElementNode(node)
+      ? node.identity
+      : undefined;
   }
 
-  public renameNode(edit: TreeEdit, id: Vid, identity: IdentityAttr): void {
-    const node = this.requireStaged(edit, id).node;
-    if (!(node instanceof ElementNode)) {
-      throw new Error("TreeStore: character data has no identity");
-    }
-    this.update(edit, id, node.withAttributes(
-      identity,
-      node.paint,
-      node.transformAttr,
-    ));
-  }
-
-  private detach(edit: TreeEdit, node: Vid): void {
-    const links = this.requireStaged(edit, node).links;
-    const parent = links.parent;
-    if (parent === null) {
-      throw new Error("TreeStore: this node is not linked under anything");
-    }
-    if (links.previous !== null) {
-      this.replaceLinks(edit, links.previous, (current) =>
-        current.withSiblings(current.previous, links.next),
-      );
-    } else {
-      this.replaceLinks(edit, parent, (current) =>
-        current.withChildren(links.next, current.lastChild),
-      );
-    }
-    if (links.next !== null) {
-      this.replaceLinks(edit, links.next, (current) =>
-        current.withSiblings(links.previous, current.next),
-      );
-    } else {
-      this.replaceLinks(edit, parent, (current) =>
-        current.withChildren(current.firstChild, links.previous),
-      );
-    }
-    this.replaceLinks(edit, node, (current) =>
-      current.withParent(null).withSiblings(null, null),
-    );
-  }
-
-  private isDescendant(edit: TreeEdit, candidate: Vid, ancestor: Vid): boolean {
-    let current: Vid | null = candidate;
-    while (current !== null) {
-      if (current === ancestor) {
-        return true;
-      }
-      current = edit.find(current)?.links.parent ?? null;
-    }
-    return false;
-  }
-
-  private requireParent(edit: TreeEdit, parent: Vid): void {
-    const node = this.requireStaged(edit, parent).node;
-    if (!isParentCapable(node)) {
-      throw new Error("TreeStore: not a container");
-    }
-  }
-
-  private requireSibling(
-    edit: TreeEdit,
-    parent: Vid,
-    before: Vid | null,
-  ): void {
-    if (before === null) {
-      return;
-    }
-    if (this.requireStaged(edit, before).links.parent !== parent) {
-      throw new Error("TreeStore: the insertion anchor is not a child");
-    }
-  }
-
-  private requireStaged(edit: TreeEdit, id: Vid): TreeRecord {
-    const record = edit.find(id);
-    if (record === undefined) {
-      throw new RangeError("TreeStore: no live node at this id");
-    }
-    return record;
-  }
-
-  private replaceLinks(
+  public renameNode(
     edit: TreeEdit,
     id: Vid,
-    patch: (links: NodeLinks) => NodeLinks,
+    identity: IdentityAttr,
   ): void {
-    const record = this.requireStaged(edit, id);
-    const links = patch(record.links);
-    edit.replace(id, record.withLinks(links));
+    this.structure.renameNode(edit, id, identity);
   }
 
   private touchedBy(
@@ -631,3 +364,4 @@ export class TreeStore {
         : "update";
   }
 }
+

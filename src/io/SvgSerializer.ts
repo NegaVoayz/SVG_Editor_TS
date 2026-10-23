@@ -1,25 +1,18 @@
-import { PlainTextNode, Svg } from "../model/node/index.js";
-import { ElementNode } from "../model/node/ElementNode.js";
-import type {
-  Circle,
-  Defs,
-  Ellipse,
-  Group,
-  Line,
-  Node,
-  Polygon,
-  Rect,
-  Switch,
-  Symbol as SvgSymbol,
-  TextNode,
-  TextPath,
-  TextWrapper,
-  Tspan,
+import {
+  isElementNode,
+  PlainTextNode,
+  Svg,
+  type Element,
+  type Node,
 } from "../model/node/index.js";
-import type { TreeStore } from "../model/store/TreeStore.js";
-import type { Vid } from "../model/store/hiveState.js";
-import { NodeVisitor } from "../model/visit/NodeVisitor.js";
 import { DEFAULT_SVG_NAMESPACE } from "../model/node/Svg.js";
+import type { Vid } from "../model/store/hiveState.js";
+import type { TreeStore } from "../model/store/TreeStore.js";
+import { NodeVisitor } from "../model/visit/NodeVisitor.js";
+import {
+  elementDataAttributes,
+  svgAttribute,
+} from "./SvgSchema.js";
 
 function escapedText(text: string): string {
   return text
@@ -27,21 +20,6 @@ function escapedText(text: string): string {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll("\r", "&#13;");
-}
-
-function escapedAttribute(text: string): string {
-  return text
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("\n", "&#10;")
-    .replaceAll("\r", "&#13;")
-    .replaceAll("\t", "&#9;");
-}
-
-function attribute(name: string, value: string): string {
-  return `${name}="${escapedAttribute(value)}"`;
 }
 
 export class SvgSerializer extends NodeVisitor<void> {
@@ -67,185 +45,79 @@ export class SvgSerializer extends NodeVisitor<void> {
     return this.output;
   }
 
-  public visitRect(node: Rect): void {
-    this.writeElement(
-      node,
-      [
-        attribute("x", node.x.toSvgText()),
-        attribute("y", node.y.toSvgText()),
-        attribute("width", node.width.toSvgText()),
-        attribute("height", node.height.toSvgText()),
-      ].join(" "),
-    );
+  public visitRect(): void {
+    this.writeElement();
   }
 
-  public visitCircle(node: Circle): void {
-    this.writeElement(
-      node,
-      [
-        attribute("cx", node.cx.toSvgText()),
-        attribute("cy", node.cy.toSvgText()),
-        attribute("r", node.radius.toSvgText()),
-      ].join(" "),
-    );
+  public visitCircle(): void {
+    this.writeElement();
   }
 
-  public visitEllipse(node: Ellipse): void {
-    this.writeElement(
-      node,
-      [
-        attribute("cx", node.cx.toSvgText()),
-        attribute("cy", node.cy.toSvgText()),
-        attribute("rx", node.radiusX.toSvgText()),
-        attribute("ry", node.radiusY.toSvgText()),
-      ].join(" "),
-    );
+  public visitEllipse(): void {
+    this.writeElement();
   }
 
-  public visitLine(node: Line): void {
-    this.writeElement(
-      node,
-      [
-        attribute("x1", node.x1.toSvgText()),
-        attribute("y1", node.y1.toSvgText()),
-        attribute("x2", node.x2.toSvgText()),
-        attribute("y2", node.y2.toSvgText()),
-      ].join(" "),
-    );
+  public visitLine(): void {
+    this.writeElement();
   }
 
-  public visitPolygon(node: Polygon): void {
-    this.writeElement(
-      node,
-      attribute(
-        "points",
-        node.points.map((point) => point.toSvgText()).join(" "),
-      ),
-    );
+  public visitPolygon(): void {
+    this.writeElement();
   }
 
-  public visitGroup(node: Group): void {
-    this.writeElement(
-      node,
-      node.dataKind === null ? "" : attribute("data-kind", node.dataKind),
-    );
+  public visitGroup(): void {
+    this.writeElement();
   }
 
-  public visitDefs(node: Defs): void {
-    this.writeElement(node, "");
+  public visitDefs(): void {
+    this.writeElement();
   }
 
-  public visitSvg(node: Svg): void {
-    const data: string[] = [];
-    if (node.width !== null) {
-      data.push(attribute("width", node.width.toSvgText()));
-    }
-    if (node.height !== null) {
-      data.push(attribute("height", node.height.toSvgText()));
-    }
-    if (node.viewBox !== null) {
-      data.push(attribute("viewBox", node.viewBox.toSvgText()));
-    }
-    this.writeElement(node, data.join(" "));
+  public visitSvg(): void {
+    this.writeElement();
   }
 
-  public visitSymbol(node: SvgSymbol): void {
-    this.writeElement(node, "");
+  public visitSymbol(): void {
+    this.writeElement();
   }
 
-  public visitSwitch(node: Switch): void {
-    this.writeElement(node, "");
+  public visitSwitch(): void {
+    this.writeElement();
   }
 
-  public visitTextWrapper(node: TextWrapper): void {
-    this.writeElement(node, this.textAttributes(node));
+  public visitTextWrapper(): void {
+    this.writeElement();
   }
 
-  public visitTspan(node: Tspan): void {
-    this.writeElement(node, this.textAttributes(node));
+  public visitTspan(): void {
+    this.writeElement();
   }
 
-  public visitTextPath(node: TextPath): void {
-    const data = [this.textAttributes(node)];
-    if (node.startOffset !== null) {
-      data.push(attribute("startOffset", node.startOffset.toSvgText()));
-    }
-    if (node.href !== "") {
-      data.push(attribute("href", node.href));
-    }
-    this.writeElement(node, data.filter((part) => part !== "").join(" "));
+  public visitTextPath(): void {
+    this.writeElement();
   }
 
   public visitPlainText(node: PlainTextNode): void {
     this.output += escapedText(node.content);
   }
 
-  private textAttributes(node: TextNode): string {
-    const data: string[] = [];
-    if (node.common.x !== null) {
-      data.push(attribute("x", node.common.x.toSvgText()));
+  private writeElement(): void {
+    const node = this.store.node(this.id);
+    if (node === undefined || !isElementNode(node)) {
+      throw new Error(`write_svg: no live element ${String(this.id)}`);
     }
-    if (node.common.y !== null) {
-      data.push(attribute("y", node.common.y.toSvgText()));
-    }
-    if (node.common.dx !== null) {
-      data.push(attribute("dx", node.common.dx.toSvgText()));
-    }
-    if (node.common.dy !== null) {
-      data.push(attribute("dy", node.common.dy.toSvgText()));
-    }
-    if (node.common.textAnchor !== null) {
-      data.push(attribute("text-anchor", node.common.textAnchor));
-    }
-    if (node.common.fontSize !== null) {
-      data.push(attribute("font-size", node.common.fontSize.toSvgText()));
-    }
-    return data.join(" ");
-  }
-
-  private writeElement(node: ElementNode, data: string): void {
     const name = node.elementName;
     if (!this.inline) {
       this.output += " ".repeat(this.depth * 2);
     }
     this.output += `<${name}`;
-    if (name === "svg" && this.depth === 0 && node instanceof Svg) {
-      this.output += ` ${attribute(
+    if (name === "svg" && this.depth === 0) {
+      this.output += ` ${svgAttribute(
         "xmlns",
         node.xmlns === "" ? DEFAULT_SVG_NAMESPACE : node.xmlns,
       )}`;
     }
-    if (node.id !== "") {
-      this.output += ` ${attribute("id", node.id)}`;
-    }
-    if (node.identity.class_ !== "") {
-      this.output += ` ${attribute("class", node.identity.class_)}`;
-    }
-    if (data !== "") {
-      this.output += ` ${data}`;
-    }
-    if (node.paint.fill !== null) {
-      this.output += ` ${attribute("fill", node.paint.fill.toSvgText())}`;
-    }
-    if (node.paint.stroke !== null) {
-      this.output += ` ${attribute("stroke", node.paint.stroke.toSvgText())}`;
-    }
-    if (node.paint.strokeWidth !== null) {
-      this.output += ` ${attribute(
-        "stroke-width",
-        node.paint.strokeWidth.toSvgText(),
-      )}`;
-    }
-    if (node.paint.opacity !== null) {
-      this.output += ` ${attribute(
-        "opacity",
-        String(node.paint.opacity),
-      )}`;
-    }
-    const transform = node.transformAttr.transform.toSvgText();
-    if (transform !== "") {
-      this.output += ` ${attribute("transform", transform)}`;
-    }
+    this.output += this.commonAttributes(node);
 
     const children = this.store.children(this.id);
     if (children.length === 0) {
@@ -253,7 +125,9 @@ export class SvgSerializer extends NodeVisitor<void> {
       return;
     }
     this.output += ">";
-    const inline = this.hasTextChild(children);
+    const inline = children.some(
+      (child) => this.store.node(child) instanceof PlainTextNode,
+    );
     if (!inline) {
       this.output += "\n";
     }
@@ -266,10 +140,46 @@ export class SvgSerializer extends NodeVisitor<void> {
     this.output += `</${name}>`;
   }
 
-  private hasTextChild(children: readonly Vid[]): boolean {
-    return children.some(
-      (child) => this.store.node(child) instanceof PlainTextNode,
-    );
+  private commonAttributes(node: Element): string {
+    const attributes: string[] = [];
+    if (node.id !== "") {
+      attributes.push(svgAttribute("id", node.id));
+    }
+    if (node.identity.class_ !== "") {
+      attributes.push(svgAttribute("class", node.identity.class_));
+    }
+    const data = elementDataAttributes(node);
+    if (data !== "") {
+      attributes.push(data);
+    }
+    if (node.paint.fill !== null) {
+      attributes.push(
+        svgAttribute("fill", node.paint.fill.toSvgText()),
+      );
+    }
+    if (node.paint.stroke !== null) {
+      attributes.push(
+        svgAttribute("stroke", node.paint.stroke.toSvgText()),
+      );
+    }
+    if (node.paint.strokeWidth !== null) {
+      attributes.push(
+        svgAttribute(
+          "stroke-width",
+          node.paint.strokeWidth.toSvgText(),
+        ),
+      );
+    }
+    if (node.paint.opacity !== null) {
+      attributes.push(
+        svgAttribute("opacity", String(node.paint.opacity)),
+      );
+    }
+    const transform = node.transformAttr.transform.toSvgText();
+    if (transform !== "") {
+      attributes.push(svgAttribute("transform", transform));
+    }
+    return attributes.length === 0 ? "" : ` ${attributes.join(" ")}`;
   }
 
   private writeNode(id: Vid, depth: number, inline: boolean): void {
@@ -286,7 +196,7 @@ export class SvgSerializer extends NodeVisitor<void> {
     this.depth = depth;
     this.inline = inline;
     this.emit(node);
-    if (!inline && node instanceof ElementNode) {
+    if (!inline && isElementNode(node)) {
       this.output += "\n";
     }
     this.id = previous.id;

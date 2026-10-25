@@ -89,6 +89,7 @@ coverage 或临时 SVG。包根含 TypeScript 源码、测试、锁文件、配�
 | [`docs/Decisions.md`](./docs/Decisions.md) | 八条设计决策、约束与代价 |
 | [`docs/Demo.md`](./docs/Demo.md) | 由脚本生成的完整会话与 A/B 互通记录 |
 | [`docs/Changelog.md`](./docs/Changelog.md) | W/T/BR/P 阶段、提交范围、度量和测试增长 |
+| [`docs/Process.md`](./docs/Process.md) | 代表性评审事件、确认命令、纠正提交和防复发措施 |
 | [`docs/Limitations.md`](./docs/Limitations.md) | SVG 子集、已知缺陷和未验证风险 |
 | [`docs/Consistency.md`](./docs/Consistency.md) | 校验统计、链接、提交、标签和命令的一致性；`--write` 显式重算 |
 
@@ -104,7 +105,7 @@ docs/
   Architecture.md DesignComparison.md OopImpedanceLog.md OopPlan.md
   StructuralRefactor.md Manual.md Testing.md RequirementsMap.md
   Decisions.md Demo.md demo.mjs Changelog.md Limitations.md
-  Consistency.md check_docs.mjs
+  Process.md Consistency.md check_docs.mjs
 src/
 tests/
 package.json package-lock.json

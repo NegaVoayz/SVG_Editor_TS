@@ -40,6 +40,7 @@ See [`docs/Architecture.md`](./docs/Architecture.md),
 [`docs/Manual.md`](./docs/Manual.md),
 [`docs/Testing.md`](./docs/Testing.md),
 [`docs/Decisions.md`](./docs/Decisions.md),
+[`docs/Process.md`](./docs/Process.md),
 [`docs/RequirementsMap.md`](./docs/RequirementsMap.md),
 [`docs/Demo.md`](./docs/Demo.md),
 [`docs/OopImpedanceLog.md`](./docs/OopImpedanceLog.md), and

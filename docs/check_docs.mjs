@@ -360,6 +360,7 @@ function checkPackage(tracked) {
     "docs/Manual.md",
     "docs/OopImpedanceLog.md",
     "docs/OopPlan.md",
+    "docs/Process.md",
     "docs/RequirementsMap.md",
     "docs/StructuralRefactor.md",
     "docs/Testing.md",

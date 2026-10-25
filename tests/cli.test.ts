@@ -529,10 +529,42 @@ describe("CLI behaviour", () => {
     expect(output).toContain(
       "box#n1 created (box#n1 + rect#n1-rect + text#n1-label)",
     );
-    expect(output).toContain("box#n1 fill propagated to n1-rect");
+    expect(output).toContain("g#n1 updated: fill=#f5a623");
     expect(output).toContain('box#n1 label updated: "Start v2"');
     expect(output.match(/g#n1 \(box\)/gu)?.length).toBeGreaterThanOrEqual(2);
-    expect(output).toContain("fill=#f5a623");
+    const loadedTree = output.slice(output.lastIndexOf("read "));
+    const fillLines = loadedTree
+      .split("\n")
+      .filter(
+        (line) =>
+          line.includes("g#n1 (box)") ||
+          line.includes("rect#n1-rect"),
+      );
+    expect(fillLines).toHaveLength(2);
+    expect(fillLines.every((line) => line.includes("fill=#f5a623"))).toBe(
+      true,
+    );
+  });
+
+  it("accepts a box fill and paints its outline", () => {
+    const output = run(
+      'init; create box n 0 0 1 1 "L" #ff0000; tree',
+    );
+    expect(output).not.toContain("error:");
+    expect(output).toContain("rect#n-rect");
+    expect(output).toContain("fill=#ff0000");
+  });
+
+  it("refuses a colliding derived box id without changing the document", () => {
+    const session = new Session({ moveDefaultsToTransform: false });
+    const output = session.run(
+      'init; create rect n-rect 0 0 1 1; create box n 0 0 1 1 "L"; tree',
+    ).output;
+    expect(output).toContain("error: id already exists: n-rect");
+    expect(output).not.toContain("box#n created");
+    expect(session.document.find("n")).toBeUndefined();
+    expect(session.document.find("n-label")).toBeUndefined();
+    expect(session.document.find("n-rect")).toBeDefined();
   });
 
   it("undoes a box label to its previous words", () => {

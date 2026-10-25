@@ -1,6 +1,7 @@
 import type { Document } from "../model/document/Document.js";
 import {
   ContainerNode,
+  isElementNode,
   Svg,
 } from "../model/node/index.js";
 import { ElementNode } from "../model/node/ElementNode.js";
@@ -63,6 +64,45 @@ function parentReference(ref: NodeRef): boolean {
   return !(ref instanceof RootRef);
 }
 
+function createdIdProblem(
+  document: Document,
+  rootId: string,
+  children: readonly CreatedChild[],
+): DuplicateId | InvalidId | ReservedId | null {
+  const seen = new Set([rootId]);
+
+  function visit(created: CreatedChild): DuplicateId | InvalidId | ReservedId | null {
+    if (isElementNode(created.node)) {
+      const id = created.node.id;
+      if (!validSvgId(id)) {
+        return new InvalidId(id);
+      }
+      if (reservedSvgId(id)) {
+        return new ReservedId(id);
+      }
+      if (document.find(id) !== undefined || seen.has(id)) {
+        return new DuplicateId(id);
+      }
+      seen.add(id);
+    }
+    for (const child of created.children) {
+      const problem = visit(child);
+      if (problem !== null) {
+        return problem;
+      }
+    }
+    return null;
+  }
+
+  for (const child of children) {
+    const problem = visit(child);
+    if (problem !== null) {
+      return problem;
+    }
+  }
+  return null;
+}
+
 
 export class Editor {
   private readonly replay: History;
@@ -114,6 +154,20 @@ export class Editor {
     if (this.document.find(command.id) !== undefined) {
       return Outcome.refused(Kind.Change, new DuplicateId(command.id));
     }
+    let children: readonly CreatedChild[];
+    try {
+      children = command.children();
+    } catch (error: unknown) {
+      return Outcome.refused(Kind.Change, new InternalError(String(error)));
+    }
+    const derivedIdProblem = createdIdProblem(
+      this.document,
+      command.id,
+      children,
+    );
+    if (derivedIdProblem !== null) {
+      return Outcome.refused(Kind.Change, derivedIdProblem);
+    }
     const parent = command.parent.resolve(this.document);
     if (parent === undefined) {
       return Outcome.refused(
@@ -129,7 +183,6 @@ export class Editor {
     const edit = this.document.transaction();
     try {
       const id = edit.appendChild(parent, command.build());
-      const children = command.children();
       this.appendCreatedChildren(edit, id, children);
       edit.commit();
       const event =

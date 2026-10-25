@@ -11,9 +11,9 @@ import type { CompositeShapeProvider } from "../plugin/ShapeProvider.js";
 import type { AttributeCommand } from "../protocol/attr/AttributeCommand.js";
 import {
   AttributeSet,
-  CompositeAttributeSet,
   CompositeContentSet,
   ContentSet,
+  NodeName,
 } from "../protocol/event/EditEvent.js";
 import { Kind } from "../protocol/Kind.js";
 import { Outcome } from "../protocol/Outcome.js";
@@ -80,13 +80,13 @@ export class AttributeWriter {
       );
     }
     if (composite !== undefined) {
-      const target = composite.attributeTarget(
+      const targets = composite.attributeTargets(
         this.document,
         source,
         command.attributeName,
       );
-      if (target !== null) {
-        return this.setCompositeAttribute(id, target, command);
+      if (targets.length > 0) {
+        return this.setAttributeTargets(id, targets, command);
       }
     }
     const lengthValue = lengthValueOf(command);
@@ -144,29 +144,37 @@ export class AttributeWriter {
     }
   }
 
-  private setCompositeAttribute(
+  private setAttributeTargets(
     compositeId: Vid,
-    targetId: Vid,
+    targetIds: readonly Vid[],
     command: AttributeCommand,
   ): Outcome {
-    const target = this.document.node(targetId);
-    if (target === undefined || !isElementNode(target)) {
-      return Outcome.refused(Kind.Change, new InternalError());
-    }
-    const replacement = command.applyTo(target);
-    if (replacement === null) {
-      return Outcome.refused(
-        Kind.Change,
-        new UnknownAttribute(command.attributeName),
-      );
+    const replacements: { id: Vid; node: Node }[] = [];
+    for (const targetId of targetIds) {
+      const target = this.document.node(targetId);
+      if (target === undefined || !isElementNode(target)) {
+        return Outcome.refused(Kind.Change, new InternalError());
+      }
+      const replacement = command.applyTo(target);
+      if (replacement === null) {
+        return Outcome.refused(
+          Kind.Change,
+          new UnknownAttribute(command.attributeName),
+        );
+      }
+      replacements.push({ id: targetId, node: replacement });
     }
     const edit = this.document.transaction();
     try {
-      edit.update(targetId, replacement);
+      for (const replacement of replacements) {
+        edit.update(replacement.id, replacement.node);
+      }
       edit.commit();
-      const event = new CompositeAttributeSet(
-        this.naming.node(compositeId),
-        this.naming.node(targetId),
+      const composite = this.document.node(compositeId);
+      const event = new AttributeSet(
+        composite !== undefined && isElementNode(composite)
+          ? new NodeName(composite.elementName, composite.id)
+          : this.naming.node(compositeId),
         command.attributeName,
         attributeText(command),
       );

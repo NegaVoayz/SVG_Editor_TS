@@ -265,7 +265,7 @@ export class BoxProvider
     parent: NodeRef,
     parentNamed: boolean,
   ): CreateIntent {
-    arity(args, [5], this.kind);
+    arity(args, [5, 6], this.kind);
     return new BoxIntent(
       id,
       length(args[0], "length"),
@@ -273,6 +273,7 @@ export class BoxProvider
       length(args[2], "length"),
       length(args[3], "length"),
       args[4] ?? "",
+      optionalColor(args[5], "fill"),
       parent,
       parentNamed,
     );
@@ -286,14 +287,19 @@ export class BoxProvider
     return "box";
   }
 
-  public attributeTarget(
+  public attributeTargets(
     document: Document,
     node: Element,
     attribute: string,
-  ): Vid | null {
-    return attribute === "fill" && node.elementName === "g"
-      ? (document.find(`${node.id}-rect`) ?? null)
-      : null;
+  ): readonly Vid[] {
+    if (attribute !== "fill" || node.elementName !== "g") {
+      return [];
+    }
+    const group = document.find(node.id);
+    const outline = document.find(`${node.id}-rect`);
+    return group === undefined || outline === undefined
+      ? []
+      : [group, outline];
   }
 
   public contentTarget(document: Document, node: Element): Vid | null {
@@ -311,6 +317,7 @@ export class BoxIntent extends CreateIntent {
     public readonly width: LengthPercentage,
     public readonly height: LengthPercentage,
     public readonly label: string,
+    public readonly fill: ReturnType<typeof optionalColor>,
     parent: NodeRef,
     parentNamed: boolean,
   ) {
@@ -337,7 +344,7 @@ export class BoxIntent extends CreateIntent {
           this.width,
           this.height,
           new IdentityAttr(`${this.id}-rect`),
-          new PaintAttr(parseColor("#4a90d9")),
+          new PaintAttr(this.fill),
           undefined,
         ),
       ),

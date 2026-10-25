@@ -31,11 +31,11 @@ export interface CompositeShapeProvider {
 
   describe(node: Element): string;
 
-  attributeTarget(
+  attributeTargets(
     document: Document,
     node: Element,
     attribute: string,
-  ): Vid | null;
+  ): readonly Vid[];
 
   contentTarget(document: Document, node: Element): Vid | null;
 }

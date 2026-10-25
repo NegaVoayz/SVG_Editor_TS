@@ -52,7 +52,7 @@ See [`docs/Architecture.md`](./docs/Architecture.md),
 npm run cli
 node dist/cli/main.js 'init; create g layer; create rect box 0 0 10 10 #ff0000 in layer; tree'
 node dist/cli/main.js 'init; create polygon p 0 0 10 0 10 10 #00ff00; tree'
-node dist/cli/main.js 'init; create box n1 120 100 160 60 "Start"; tree'
+node dist/cli/main.js 'init; create box n1 120 100 160 60 "Start" #4a90d9; tree'
 ```
 
 On Windows, `npm run cli` opens the interactive prompt without an argument;

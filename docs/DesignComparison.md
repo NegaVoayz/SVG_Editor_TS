@@ -13,7 +13,7 @@
 | W6 | Planner、Parser、Renderer、交互 CLI |
 | W7 | 108 条主回归 + T1–T6 + S1–S8 类型/历史测试 |
 
-当前统计约为 110 个 TypeScript 源文件、10,092 行产品代码、124 个通过测试。
+当前统计约为 110 个 TypeScript 源文件、10,175 行产品代码、128 个通过测试。
 C++ 参考目录静态统计为 78 个 `.hh/.cc` 文件、11,067 行（含其测试文件）。
 
 ## T1–T6
@@ -42,6 +42,7 @@ C++ 参考目录静态统计为 78 个 `.hh/.cc` 文件、11,067 行（含其测
 | S7 | 暂存写不改变已提交节点，rollback 恢复原引用 |
 | S8 | 拒绝对象未知字段无法编译 |
 | BR-01–BR-09 | 见 [`StructuralRefactor.md`](./StructuralRefactor.md)，行为回归全通过 |
+| A/B parity #4–#10 | box fill 与派生 id、history 窗口/折叠、树分支前缀均有 CLI 回归 |
 
 ## 结构比较
 

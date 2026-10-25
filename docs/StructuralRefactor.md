@@ -1,7 +1,7 @@
 # B 侧结构修复验收记录
 
 基线：`3684dd9`。所有重构均保持 CLI 与 SVG 可观察行为不变；原有 120 条测试
-继续通过，新增节点联合、Schema 覆盖与缺失目标回归后为 124 条。
+继续通过，新增节点联合、Schema 覆盖、缺失目标与 A/B parity 回归后为 128 条。
 
 ## BR 对照
 
@@ -36,7 +36,7 @@
 
 ```text
 npm run check   PASS
-npm test        9 files / 124 tests PASS
+npm test        9 files / 128 tests PASS
 npm run build   PASS
 ```
 

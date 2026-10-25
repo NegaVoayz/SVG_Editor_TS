@@ -7,7 +7,7 @@
 | 1 | `NodeVisitor` | GoF Visitor 必须为每个具体节点写一个抽象方法；新增 Polygon 时全部行为 visitor 会编译失败 | 保留 Visitor，并把几何/详情逻辑集中到多个 visitor |
 | 2 | `protocol/attr/spec.ts` | 属性解析、适用性与不可变重建仍在中央候选表中 | 已从 31 个命令类收敛到一张规格表 |
 | 3 | `Editor.transformNode` | TS 没有 C++ variant 的模式匹配，必须组合 `instanceof` 与类型收窄 | 将节点分类限制在几何适配函数中 |
-| 4 | `Editor.setBoxFill` | 组合形状的语义传播是插件契约，但普通 OOP 接口无法表达“哪些子节点接收哪个属性” | 明确由 box provider 约定子节点 id 后缀 |
+| 4 | `AttributeWriter` | 组合形状的属性可能同时落在 group 与派生 outline 上 | provider 返回完整目标集合，writer 在一个事务内更新并记录 group 事件 |
 | 5 | `TreeStructure` | 节点不持有链接后，结构补丁需要同时重建邻居和端点 record | TreeStore 只保留 MVCC 门面，链接约束独立演进 |
 | 6 | `Hive` | Map 版本链没有 C++ 的块内紧凑布局和 32 字节记录保证 | 首先验证语义，不移植 blocked array |
 | 7 | `Outcome` | TypeScript 的联合类型在运行时没有标准 variant index | 通过 `reason/eventName` 判别字段识别结果 |

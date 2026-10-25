@@ -24,6 +24,18 @@ export default tseslint.config(
     },
   },
   {
+    files: ["docs/**/*.mjs"],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: {
+        process: "readonly",
+      },
+      parserOptions: {
+        projectService: false,
+      },
+    },
+  },
+  {
     files: ["src/model/**/*.ts"],
     rules: {
       "no-restricted-imports": [

@@ -1,6 +1,6 @@
 # 一致性自查报告
 
-由 `node docs/check_docs.mjs --write` 生成。输入指纹为 `0f931c836e78`；默认执行只校验本报告，不重写文件。
+由 `node docs/check_docs.mjs --write` 生成。输入指纹为 `2af738a6afdd`；默认执行只校验本报告，不重写文件。
 
 ## 重算统计
 
@@ -22,7 +22,7 @@
 | Markdown links and anchors | PASS | 61 links checked; 0 broken |
 | Referenced commits | PASS | 21 references checked; 1 external; 0 missing |
 | Referenced commit titles | PASS | 5 titles checked; 0 mismatched |
-| Delivery tag | PASS | final-2 points to HEAD |
+| Delivery tag | PASS | final points to HEAD |
 | Documentation wording | PASS | none of 5 removed phrases occurs |
 | set points documentation | PASS | manual, mapping, tests, and limits agree |
 | polygon minimum documentation | PASS | three-point minimum is consistent |

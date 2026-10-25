@@ -53,14 +53,14 @@ node docs/demo.mjs
 778b3ed Task P4: record A/B parity fixes (arm B)
 ```
 
-`final-2` 是不可移动的交付标签，指向包含源码、测试和全部文档的交付提交，
-并保留上述产品行为基线。已发布的标签不改指向；后续交付使用新标签。
+`final` 是唯一交付标签，指向包含源码、测试和全部文档的交付提交，
+并保留上述产品行为基线。每次最终交付刷新该标签；不发布其他归档别名。
 归档前先强制刷新标签，再断言标签与 HEAD 相同：
 
 ```sh
 git fetch --tags --force origin
-test "$(git rev-parse 'final-2^{commit}')" = "$(git rev-parse HEAD)"
-git archive --format=zip --output=../SVG_Editor_TS-final-2.zip final-2
+test "$(git rev-parse 'final^{commit}')" = "$(git rev-parse HEAD)"
+git archive --format=zip --output=../SVG_Editor_TS-final.zip final
 ```
 
 `git archive` 只打包已跟踪文件，因此不会包含本地 `node_modules/`、`dist/`、

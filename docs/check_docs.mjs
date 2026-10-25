@@ -92,10 +92,13 @@ function inputFingerprint(tracked) {
     if (file === consistencyFile) {
       continue;
     }
-    const objectId = git(["hash-object", `--path=${file}`, file]).output;
+    const content = readFileSync(join(root, file), "utf8").replaceAll(
+      "\r\n",
+      "\n",
+    );
     hash.update(file, "utf8");
     hash.update("\0");
-    hash.update(objectId, "utf8");
+    hash.update(content, "utf8");
     hash.update("\0");
   }
   return hash.digest("hex").slice(0, 12);
@@ -231,7 +234,7 @@ function checkCommitReferences(files) {
 }
 
 function checkTags() {
-  const deliveryTag = "final-2";
+  const deliveryTag = "final";
   const head = git(["rev-parse", "HEAD"], true);
   const tag = git(["rev-parse", `${deliveryTag}^{commit}`], true);
   const matches = head.ok && tag.ok && head.output === tag.output;

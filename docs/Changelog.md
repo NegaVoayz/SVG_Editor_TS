@@ -172,5 +172,5 @@ Task Docs-D4: record architecture decisions (arm B)
 4. 不把两个 C++ 参考项目、`node_modules/`、`dist/` 或临时 demo 文件带入本仓。
 5. 修改任何被一致性检查覆盖的输入后，先把新增文件加入 Git 索引，再运行
    `node docs/check_docs.mjs --write`，提交报告，最后运行默认命令确认 exit 0。
-6. 已发布标签不改指向；新交付使用新标签，并在归档前验证标签等于 HEAD。
+6. `final` 是唯一交付标签；归档前强制刷新该标签，并验证它等于 HEAD。
 

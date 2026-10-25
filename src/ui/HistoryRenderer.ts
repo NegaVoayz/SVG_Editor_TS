@@ -42,7 +42,7 @@ export class HistoryRenderer {
           ? "edit"
           : this.events.render(row.event);
       lines.push(
-        `${String(row.commit).padStart(width, " ")} +${text}${head}`,
+        `${String(row.commit).padStart(width, " ")}  ${text}${head}`,
       );
     });
     return lines.join("\n");

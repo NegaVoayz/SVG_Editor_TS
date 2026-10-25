@@ -30,7 +30,7 @@ export class ExtentVisitor extends NodeVisitor<LengthPercentage | null> {
   }
 
   public visitPolygon(node: Polygon): LengthPercentage | null {
-    return node.points[0]?.x ?? null;
+    return node.points.values[0]?.x ?? null;
   }
 
   public visitGroup(): null {

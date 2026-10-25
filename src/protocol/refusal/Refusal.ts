@@ -16,6 +16,7 @@ export type RefusalReason =
   | "opacity-out-of-range"
   | "cannot-ungroup-non-container"
   | "cannot-ungroup-composite-shape"
+  | "composite-missing-child"
   | "cannot-group-into-own-descendant"
   | "cannot-add-to-own-descendant"
   | "cannot-group-top-level-container"
@@ -128,6 +129,15 @@ export class CannotUngroupNonContainer extends RefusalBase {
 export class CannotUngroupCompositeShape extends RefusalBase {
   public readonly reason = "cannot-ungroup-composite-shape";
   public constructor(public readonly node: NodeRef) {
+    super();
+  }
+}
+export class CompositeMissingChild extends RefusalBase {
+  public readonly reason = "composite-missing-child";
+  public constructor(
+    public readonly node: NodeRef,
+    public readonly child: string,
+  ) {
     super();
   }
 }
@@ -265,6 +275,7 @@ export type Refusal =
   | OpacityOutOfRange
   | CannotUngroupNonContainer
   | CannotUngroupCompositeShape
+  | CompositeMissingChild
   | CannotGroupIntoOwnDescendant
   | CannotAddToOwnDescendant
   | CannotGroupTopLevelContainer

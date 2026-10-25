@@ -1,4 +1,5 @@
 import { Paint } from "../model/values/Paint.js";
+import { Points } from "../model/values/Points.js";
 import type { Node } from "../model/node/index.js";
 import { LengthPercentage } from "../model/values/LengthPercentage.js";
 import { Transform } from "../model/values/Transform.js";
@@ -46,6 +47,9 @@ export function attributeText(command: AttributeCommand): string {
     return candidate.toDisplayText() || "none";
   }
   if (candidate instanceof ViewBox) {
+    return candidate.toDisplayText();
+  }
+  if (candidate instanceof Points) {
     return candidate.toDisplayText();
   }
   if (

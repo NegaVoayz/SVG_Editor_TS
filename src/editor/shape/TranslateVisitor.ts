@@ -13,6 +13,7 @@ import {
 import { Coordinate } from "../../model/values/Coordinate.js";
 import type { LengthPercentage } from "../../model/values/LengthPercentage.js";
 import { sumLengths } from "../../model/values/geometry.js";
+import { Points } from "../../model/values/Points.js";
 import { NodeVisitor } from "../../model/visit/NodeVisitor.js";
 import { textWithCommon } from "./TextCommonEditor.js";
 
@@ -91,7 +92,7 @@ export class TranslateVisitor extends NodeVisitor<Node | null> {
 
   public visitPolygon(node: Polygon): Node | null {
     const points: Coordinate[] = [];
-    for (const point of node.points) {
+    for (const point of node.points.values) {
       const x = sumLengths(point.x, this.dx);
       const y = sumLengths(point.y, this.dy);
       if (x === null || y === null) {
@@ -99,12 +100,15 @@ export class TranslateVisitor extends NodeVisitor<Node | null> {
       }
       points.push(new Coordinate(x, y));
     }
-    return new Polygon(
-      points,
-      node.identity,
-      node.paint,
-      node.transformAttr,
-    );
+    const translated = Points.fromCoordinates(points);
+    return translated === null
+      ? null
+      : new Polygon(
+          translated,
+          node.identity,
+          node.paint,
+          node.transformAttr,
+        );
   }
 
   public visitGroup(): null {

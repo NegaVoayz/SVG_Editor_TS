@@ -10,6 +10,7 @@ import {
   parseLength,
   parsePaint,
   Percentage,
+  Points,
   RgbColor,
   sumLengths,
   Transform,
@@ -76,6 +77,15 @@ describe("viewBox and identifiers", () => {
     expect(validSvgId("start-label")).toBe(true);
     expect(validSvgId("a b")).toBe(false);
     expect(validSvgId("#2")).toBe(false);
+  });
+});
+
+describe("point lists", () => {
+  it("accepts comma or whitespace pairs and requires three points", () => {
+    const points = Points.parse("0,0 10 0 5,10");
+    expect(points?.toDisplayText()).toBe("0,0 10,0 5,10");
+    expect(Points.parse("0 0 10 0")).toBeNull();
+    expect(Points.parse("0 0 10 0 nope 1")).toBeNull();
   });
 });
 

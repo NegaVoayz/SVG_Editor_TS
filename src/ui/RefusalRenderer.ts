@@ -38,6 +38,8 @@ export class RefusalRenderer {
         return `error: cannot ungroup a shape or text node: ${value.node.display}`;
       case "cannot-ungroup-composite-shape":
         return `error: cannot ungroup composite shape: ${value.node.display}`;
+      case "composite-missing-child":
+        return `error: composite ${value.node.display} has no ${value.child} child`;
       case "cannot-group-into-own-descendant":
         return `error: cannot group a container into its own descendant: ${value.node.display}`;
       case "cannot-add-to-own-descendant":

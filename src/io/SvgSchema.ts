@@ -17,12 +17,12 @@ import {
   type Element,
   type ElementName,
 } from "../model/node/index.js";
-import { Coordinate } from "../model/values/Coordinate.js";
 import { IdentityAttr } from "../model/values/IdentityAttr.js";
 import { Length } from "../model/values/Length.js";
 import type { LengthPercentage } from "../model/values/LengthPercentage.js";
 import { LengthUnit } from "../model/values/LengthUnit.js";
 import { PaintAttr } from "../model/values/PaintAttr.js";
+import { Points } from "../model/values/Points.js";
 import { parsePaint } from "../model/values/Color.js";
 import { parseLength, parseNumber } from "../model/values/parseValues.js";
 import { Transform } from "../model/values/Transform.js";
@@ -193,23 +193,11 @@ function parseViewBox(element: XmlElement): ViewBox | null {
   return box;
 }
 
-function polygonPoints(element: XmlElement): Coordinate[] {
+function polygonPoints(element: XmlElement): Points {
   const text = element.attribute("points");
-  if (text === undefined) {
-    return [];
-  }
-  const words = text.trim().split(/[\s,]+/u);
-  if (words.length % 2 !== 0) {
-    failSvg(`invalid points on <polygon>: ${text}`);
-  }
-  const points: Coordinate[] = [];
-  for (let index = 0; index < words.length; index += 2) {
-    const x = parseLength(words[index] ?? "");
-    const y = parseLength(words[index + 1] ?? "");
-    if (x === null || y === null) {
-      failSvg(`invalid points on <polygon>: ${text}`);
-    }
-    points.push(new Coordinate(x, y));
+  const points = text === undefined ? null : Points.parse(text);
+  if (points === null) {
+    failSvg(`invalid points on <polygon>: ${text ?? ""}`);
   }
   return points;
 }
@@ -477,10 +465,7 @@ export function elementDataAttributes(node: Element): string {
         svgAttribute("y2", node.y2.toSvgText()),
       ].join(" ");
     case "polygon":
-      return svgAttribute(
-        "points",
-        node.points.map((point) => point.toSvgText()).join(" "),
-      );
+      return svgAttribute("points", node.points.toSvgText());
     case "g":
       return node.dataKind === null
         ? ""

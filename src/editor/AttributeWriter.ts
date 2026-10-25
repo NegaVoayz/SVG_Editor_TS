@@ -18,6 +18,7 @@ import {
 import { Kind } from "../protocol/Kind.js";
 import { Outcome } from "../protocol/Outcome.js";
 import {
+  CompositeMissingChild,
   InternalError,
   MissingShape,
   NegativeDimension,
@@ -69,6 +70,10 @@ export class AttributeWriter {
           command.contentValue,
         );
       }
+      return Outcome.refused(
+        Kind.Change,
+        new CompositeMissingChild(command.target, "label"),
+      );
     }
     if (command.contentValue !== null) {
       return this.setContent(id, source, command);

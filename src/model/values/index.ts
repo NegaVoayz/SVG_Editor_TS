@@ -10,6 +10,7 @@ export * from "./Paint.js";
 export * from "./PaintAttr.js";
 export * from "./parseValues.js";
 export * from "./Percentage.js";
+export * from "./Points.js";
 export * from "./svgId.js";
 export * from "./Transform.js";
 export * from "./TransformAttr.js";

@@ -51,7 +51,7 @@ export class DetailsVisitor extends NodeVisitor<string | null> {
   }
 
   public visitPolygon(node: Polygon): string {
-    return `points=${node.points.map((point) => point.toDisplayText()).join(" ")}`;
+    return `points="${node.points.toDisplayText()}"`;
   }
 
   public visitGroup(): null {

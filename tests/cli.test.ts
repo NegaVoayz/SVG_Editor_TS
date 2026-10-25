@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -266,7 +266,7 @@ describe("CLI behaviour", () => {
     expect(
       run("init; create rect r 0 0 1 1; move r 5 7; history"),
     ).toContain(
-      "3 +rect#r moved by (5, 7) (HEAD)\n2 +rect#r created\n1 +baseline",
+      "3  rect#r moved by (5, 7) (HEAD)\n2  rect#r created\n1  baseline",
     );
   });
 
@@ -275,11 +275,11 @@ describe("CLI behaviour", () => {
       "init; create g g0; create g g1; create g g2; create g g3; create g g4; create g g5; history 2",
     );
     expect(output).toContain(
-      "7 +g#g5 created (HEAD)\n" +
-        "6 +g#g4 created\n" +
-        "5 +g#g3 created\n" +
+      "7  g#g5 created (HEAD)\n" +
+        "6  g#g4 created\n" +
+        "5  g#g3 created\n" +
         "... 3 commits folded ...\n" +
-        "1 +baseline",
+        "1  baseline",
     );
   });
 
@@ -288,7 +288,7 @@ describe("CLI behaviour", () => {
       "init; create rect r 0 0 1 1; move r 5 7; checkout 2; show r; checkout 3; show r",
     );
     expect(output).toContain("checked out 2");
-    expect(output).toContain("2 +rect#r created (HEAD)");
+    expect(output).toContain("2  rect#r created (HEAD)");
     expect(output).toContain("x=0 y=0 w=1 h=1");
   });
 
@@ -299,7 +299,7 @@ describe("CLI behaviour", () => {
       run(
         `init; create rect a 0 0 1 1; save ${path}; create rect b 0 0 1 1; history; canvas 800 600; read ${path}; history`,
       ),
-    ).toContain("5 +baseline (HEAD)");
+    ).toContain("5  baseline (HEAD)");
   });
 
   it("quotes ids and rejects quoted whitespace as an XML id", () => {
@@ -500,16 +500,16 @@ describe("CLI behaviour", () => {
   it("shows history after a context checkpoint", () => {
     expect(
       run("init; create rect r 0 0 1 1; canvas 800 600; history"),
-    ).toContain("3 +baseline (HEAD)");
+    ).toContain("3  baseline (HEAD)");
   });
 
   it("preserves the HEAD marker after undo", () => {
     const output = run(
       "init; create rect r 0 0 1 1; move r 5 7; undo; history",
     );
-    expect(output).toContain("2 +rect#r created (HEAD)");
+    expect(output).toContain("2  rect#r created (HEAD)");
     expect(output).not.toContain(
-      "3 +rect#r moved by (5, 7) (HEAD)",
+      "3  rect#r moved by (5, 7) (HEAD)",
     );
   });
 
@@ -517,7 +517,7 @@ describe("CLI behaviour", () => {
     const session = new Session({ moveDefaultsToTransform: false });
     const output = session.run("init; zoom 2; history").output;
     expect(output).toContain("zoom 2x");
-    expect(output).toContain("1 +baseline (HEAD)");
+    expect(output).toContain("1  baseline (HEAD)");
     expect(session.document.depth()).toBe(0);
     expect(session.zoom()).toBe(2);
   });
@@ -544,7 +544,45 @@ describe("CLI behaviour", () => {
       `init; create polygon p 0 0 10 0 10 10 #00ff00; move p 5 2 params restrict; scale p 2 params restrict; tree; save ${path}; read ${path}; tree`,
     );
     expect(output).toContain("fill=#00ff00");
-    expect(output.match(/points=10,4 30,4 30,24/gu)?.length).toBeGreaterThanOrEqual(2);
+    expect(output.match(/points="10,4 30,4 30,24"/gu)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("accepts quoted polygon points and updates them immutably", () => {
+    const output = run(
+      'init; create polygon p "0,0 10,0 5,10"; set p points "1,2 3,4 5,6"; show p',
+    );
+    expect(output).toContain('polygon#p updated: points="1,2 3,4 5,6"');
+    expect(output).toContain('points="1,2 3,4 5,6"');
+    expect(output).not.toContain("as a fill");
+  });
+
+  it("rejects polygons with fewer than three points everywhere", () => {
+    const directory = mkdtempSync(join(tmpdir(), "svg-editor-ts-polygon-invalid-"));
+    const path = join(directory, "invalid.svg");
+    writeFileSync(
+      path,
+      '<svg xmlns="http://www.w3.org/2000/svg"><polygon id="p" points="0,0 10,0"/></svg>',
+      "utf8",
+    );
+    const output = run(
+      `init; create polygon p 0 0 10 0; set p points "0,0 1,0"; read ${path}`,
+    );
+    expect(output.match(/at least three coordinate pairs/gu)?.length).toBeGreaterThanOrEqual(2);
+    expect(output).toContain("error: cannot parse SVG: invalid points on <polygon>");
+    expect(output).not.toContain("polygon#p created");
+  });
+
+  it("reports a marked box that has no label child", () => {
+    const directory = mkdtempSync(join(tmpdir(), "svg-editor-ts-box-label-"));
+    const path = join(directory, "missing-label.svg");
+    writeFileSync(
+      path,
+      '<svg xmlns="http://www.w3.org/2000/svg"><g id="b" data-kind="box"><rect id="b-rect" width="10" height="10"/></g></svg>',
+      "utf8",
+    );
+    const output = run(`read ${path}; set b content "x"; set b fill red`);
+    expect(output).toContain("error: composite b has no label child");
+    expect(output).toContain("g#b updated: fill=red");
   });
 
   it("implements the composite box creation, propagation, and round trip", () => {
@@ -620,9 +658,9 @@ describe("CLI behaviour", () => {
     const output = session.run(script).output;
     const historyLines = output
       .split("\n")
-      .filter((line) => /^\s*\d+ \+/u.test(line));
+      .filter((line) => /^\s*\d+\s{2}/u.test(line));
     expect(historyLines).toHaveLength(7);
-    expect(output).toContain("16 +g#g14");
+    expect(output).toContain("16  g#g14");
     expect(output).toContain("... 9 commits folded ...");
   });
 

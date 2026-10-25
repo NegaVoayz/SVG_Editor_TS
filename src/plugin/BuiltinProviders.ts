@@ -7,13 +7,13 @@ import {
   TextWrapper,
 } from "../model/node/index.js";
 import { parseColor } from "../model/values/Color.js";
-import { Coordinate } from "../model/values/Coordinate.js";
 import { IdentityAttr } from "../model/values/IdentityAttr.js";
 import { Length } from "../model/values/Length.js";
 import type { LengthPercentage } from "../model/values/LengthPercentage.js";
 import { sumLengths } from "../model/values/geometry.js";
 import { parseLength } from "../model/values/parseValues.js";
 import { PaintAttr } from "../model/values/PaintAttr.js";
+import { Points } from "../model/values/Points.js";
 import type { NodeRef } from "../protocol/NodeRef.js";
 import {
   CreateCircle,
@@ -200,29 +200,30 @@ export class PolygonProvider extends ShapeProvider {
     parent: NodeRef,
     parentNamed: boolean,
   ): CreateIntent {
-    const coordinates = [...args];
-    const fill =
-      coordinates.length % 2 === 1
-        ? optionalColor(coordinates.pop(), "fill")
-        : null;
-    if (coordinates.length < 4 || coordinates.length % 2 !== 0) {
+    if (args.length === 0) {
       throw new ProviderParseError(
-        "create polygon takes '<id> <x> <y> <x> <y> ... [fill] [in <gid>]'",
+        "create polygon takes '<id> \"<x,y ...>\" [fill] [in <gid>]' or '<id> <x> <y> ... [fill] [in <gid>]'",
       );
     }
-    const points: Coordinate[] = [];
-    for (let index = 0; index < coordinates.length; index += 2) {
-      points.push(
-        new Coordinate(
-          length(coordinates[index], "length"),
-          length(coordinates[index + 1], "length"),
-        ),
+    const quotedForm = args.length <= 2;
+    const fillWord = quotedForm
+      ? args[1]
+      : args.length % 2 === 1
+        ? args.at(-1)
+        : undefined;
+    const pointText = quotedForm
+      ? (args[0] ?? "")
+      : args.slice(0, fillWord === undefined ? args.length : -1).join(" ");
+    const points = Points.parse(pointText);
+    if (points === null) {
+      throw new ProviderParseError(
+        `error: cannot read '${pointText}' as points: at least three coordinate pairs are required`,
       );
     }
     return new PolygonIntent(
       id,
       points,
-      fill,
+      optionalColor(fillWord, "fill"),
       parent,
       parentNamed,
     );
@@ -232,7 +233,7 @@ export class PolygonProvider extends ShapeProvider {
 export class PolygonIntent extends CreateIntent {
   public constructor(
     id: string,
-    public readonly points: readonly Coordinate[],
+    public readonly points: Points,
     public readonly fill: ReturnType<typeof optionalColor>,
     parent: NodeRef,
     parentNamed: boolean,
@@ -245,7 +246,6 @@ export class PolygonIntent extends CreateIntent {
       this.points,
       new IdentityAttr(this.id),
       new PaintAttr(this.fill),
-      undefined,
     );
   }
 }

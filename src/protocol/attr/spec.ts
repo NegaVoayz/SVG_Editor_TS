@@ -2,6 +2,7 @@ import {
   Circle,
   Ellipse,
   Line,
+  Polygon,
   Rect,
   Svg,
   TextAnchor,
@@ -16,6 +17,7 @@ import { parsePaint } from "../../model/values/Color.js";
 import { Paint } from "../../model/values/Paint.js";
 import { parseLength } from "../../model/values/parseValues.js";
 import { LengthPercentage } from "../../model/values/LengthPercentage.js";
+import { Points } from "../../model/values/Points.js";
 import { Transform } from "../../model/values/Transform.js";
 import { ViewBox } from "../../model/values/ViewBox.js";
 
@@ -24,6 +26,7 @@ export type AttributeValue =
   | Paint
   | Transform
   | ViewBox
+  | Points
   | TextAnchor
   | string
   | number;
@@ -739,6 +742,28 @@ export const ATTRIBUTES: Readonly<Record<string, AttributeSpec>> = {
     (node) => isTextElement(node),
     (node) => node,
     { content: true },
+  ),
+  points: new AttributeSpec(
+    "points",
+    (word) => {
+      const value = Points.parse(word);
+      if (value === null) {
+        throw new AttributeParseError(
+          `cannot read '${word}' as points: at least three coordinate pairs are required`,
+        );
+      }
+      return value;
+    },
+    (node) => node.elementName === "polygon",
+    (node, value) =>
+      node.elementName === "polygon" && value instanceof Points
+        ? new Polygon(
+            value,
+            node.identity,
+            node.paint,
+            node.transformAttr,
+          )
+        : null,
   ),
 };
 

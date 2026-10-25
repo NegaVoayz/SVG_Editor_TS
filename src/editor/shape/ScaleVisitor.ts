@@ -67,7 +67,7 @@ export class ScaleVisitor extends NodeVisitor<Node | null> {
 
   public visitPolygon(node: Polygon): Node {
     return new Polygon(
-      node.points.map((point) => point.scaled(this.factor)),
+      node.points.scaled(this.factor),
       node.identity,
       node.paint,
       node.transformAttr,

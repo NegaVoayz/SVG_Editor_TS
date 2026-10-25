@@ -1,8 +1,7 @@
 # 结构与实现过程记录
 
-本文按提交顺序记录从工具链脚手架到完整编辑器的结构形成、职责收窄和证据闭环。
-这里的“纠正”指结构边界、规范性文档或验证机制在后续提交中得到落实；局部输出差异
-不单列，也不以提交数量代替结构演进的主线。
+本文按事件记录从工具链脚手架到完整编辑器的结构形成、职责收窄和证据闭环。事件表回答
+“发现了什么、怎样确认、怎样纠正”；文末提交表只用于定位实现，不承担评审记录。
 
 ## 1. 结构形成与复审
 
@@ -17,10 +16,10 @@
 | W6 已连通的执行链 | Editor 约 1,200 行，节点行为依赖具体类型，属性、Schema 和树存储仍有重复映射 | `npx vitest run tests/cli.test.ts`<br>`Tests  79 passed (79)` | `5484581` 加入 Polygon、Attribute/UnitOfWork 与 Provider 扩展缝；BR 系列再提取 Visitor、闭合节点表、属性规格、Schema 和命令服务 | 单测、类型级断言和结构表共同指出新增节点的遗漏位置 |
 | BR 重构后的边界 | 简化若只看行数，容易漏掉行为差异；需要证明结构拆分没有改变协议结果 | `npm test`<br>`Tests  132 passed (132)` | `2057fd7`…`8c5a709` 完成职责拆分并记录验收矩阵 | 保留 CLI 行为测试、闭合联合、exhaustive switch 和结构度量 |
 
-## 2. 第一批结构提交
+## 2. 提交索引：第一批结构提交
 
-W0–W6 与紧随其后的 T1–T6 构成编辑器的定义和首次完整实现。每个提交都留下一个可继续
-扩展的边界，最终组合成
+本节是索引，不含评审内容。W0–W6 与紧随其后的 T1–T6 构成编辑器的定义和首次完整实现，
+每个提交留下一个可继续扩展的边界，最终组合成
 `CLI -> UI -> Planner -> Editor -> Protocol -> Model -> Store` 的依赖链。
 
 | 提交 | 阶段 | 结构贡献 | 验收 |
@@ -38,7 +37,9 @@ W0–W6 与紧随其后的 T1–T6 构成编辑器的定义和首次完整实现
 以上提交不是事后补写文档，而是逐步建立的实现骨架。后续重构均以 `3684dd9` 的
 120 条行为测试为基线。
 
-## 3. BR 结构重构提交
+## 3. 提交索引：结构重构与后续文档
+
+本节同样是索引，只说明每个提交建立的边界；“当时哪里不足”集中记录在事件表中。
 
 | 提交 | 结构贡献 |
 | --- | --- |
@@ -55,23 +56,24 @@ W0–W6 与紧随其后的 T1–T6 构成编辑器的定义和首次完整实现
 | `02388a3` | 拆分后保留 missing attribute target 的拒绝语义 |
 | `8c5a709` | 记录 BR-01–09 验收矩阵、结构度量和类型证据 |
 
-## 4. 后段结构与证据
+| 文档阶段 | 提交 | 建立的文档边界 |
+| --- | --- | --- |
+| D1–D7 | `0081992`、`eb3b265`、`446b0aa`、`0b44816`、`ba5ec8c`、`feef059`、`e5f15ef`、`a8ba67e` | 架构决策、命令语言、测试分层、互通演示、阶段度量、需求映射和交付入口 |
 
-结构形成后，后半段时间轴上的提交分别补上扩展图元、架构决策、测试分层和文档门禁。
-这些提交没有改变
-`CLI -> UI -> Planner -> Editor -> Protocol -> Model -> Store` 的主依赖方向，但把其中的
-扩展点与可验证边界补齐。
+## 4. 后段事件
 
-| 提交 | 阶段 | 结构贡献 | 如何确认 |
-| --- | --- | --- | --- |
-| `0081992`、`eb3b265`、`446b0aa`、`0b44816`、`ba5ec8c`、`feef059`、`e5f15ef`、`a8ba67e` | D1–D7 | 把架构决策、命令语言、测试分层、互通演示、阶段度量、需求映射和交付入口拆成可交叉检查的文档面 | `node docs/check_docs.mjs`<br>`docs/Consistency.md matches current checks` |
-| `278aaa4`、`9f61dc0` | Issues R1 | 把 Polygon 与复合结构的完整性提升为模型和命令边界，而不是由 Reader、Renderer 各自容忍不完整状态 | `npm test`<br>`Tests  132 passed (132)` |
-| `b6c9c86` | 文档一致性 | 将分散的文档主张接到产品结构、测试统计和链接检查上，暴露文档之间的漂移 | `node docs/check_docs.mjs`<br>`Documentation wording    PASS` |
-| `d39b8f6`、`4429a66` | 报告校验 | 一致性报告从“每次运行顺便重写”改为“默认校验已提交结果”，生成动作与验证动作分离 | `node docs/check_docs.mjs`<br>`Verification commands    PASS`<br>`Delivery tag             PASS` |
-| AI 文档结论“`Changelog.md` 已经是过程记录” | 过程纠正 | 该判断只看到阶段变更和度量，没有看到结构边界如何形成；`e6643a2` 建立独立过程记录，`4002746` 将其重心移回早期结构提交 | `node -e "console.log('process-event-table=' + require('node:fs').readFileSync('docs/Changelog.md', 'utf8').includes('如何防止复发'))"`<br>`process-event-table=false` |
+事件以可观察的失败或错误结论为单位，而不是按提交批次归并。前四行覆盖渲染、历史、
+复合图元和文档门禁；最后一行记录一条文档结论如何被证据推翻并替换。
 
-第一张事件表保留 W0–W6 的连续定义，第二、三张表保留 BR 的职责拆分；本表补齐后半段。
-覆盖范围可以按提交序列而不是日历天检查：
+| 产物或建议 | 哪里错了 | 如何确认 | 如何纠正 | 如何防止复发 |
+| --- | --- | --- | --- | --- |
+| AI 生成的 `TreeRenderer` | `followedAt` 把已经确定的 `false` 同层状态重新当作未设置，更早的兄弟又把它覆盖成 `true`；最后一个子容器前面仍有兄弟时，其子孙多出一条竖线 | `npx vitest run tests/cli.test.ts -t "does not draw a branch bar below a last-child container"`<br>`Tests  1 passed \| 78 skipped (79)` | `8ee9b1e` 每行直接维护前缀，并加入“最后子容器前面仍有同层兄弟”的命名测试 | 树形输出测试同时覆盖单链、唯一子节点和最后子容器带前置兄弟的形状 |
+| AI 生成的 history 窗口 | 请求 `n` 条邻居时只显示 `n-1` 条；被省略的旧提交也没有折叠行 | `npx vitest run tests/cli.test.ts -t "shows HEAD, the requested neighbours, folded commits, and baseline"`<br>`Tests  1 passed \| 78 skipped (79)` | `50df835` 恢复 HEAD、`n` 条邻居、折叠行和 baseline 的完整窗口 | 测试精确比较 HEAD、邻居、折叠提示和 baseline，而不只断言命令成功 |
+| AI 生成的 box Provider | 第六个操作数没有进入 fill；派生 id 在写入前没有检查冲突，可能产生重复的 `rect#<id>-rect` | `npx vitest run tests/cli.test.ts -t "accepts a box fill and paints its outline"`<br>`Tests  1 passed \| 78 skipped (79)`<br>`npx vitest run tests/cli.test.ts -t "refuses a colliding derived box id without changing the document"`<br>`Tests  1 passed \| 78 skipped (79)` | `b74446b` 让 fill 同时传播到 outline，并在任何写入前拒绝派生 id 冲突 | 保留 fill 与“拒绝后文档不变”两个命名测试 |
+| AI 建议让一致性报告每次运行自动重写，并扫描工作树中的全部 Markdown | 失败信息会被写进报告的下一轮扫描；未跟踪笔记会改变门禁结果；过时报告也会被静默改写 | `node docs/check_docs.mjs`<br>`docs/Consistency.md matches current checks` | `d39b8f6` 排除生成物、只扫描已跟踪文件并改为默认校验；`4429a66` 用 Git 对象稳定输入指纹，并把门禁纳入交付验证 | 默认模式只读，`--write` 必须显式指定；报告不扫描自身，失败时不重写 |
+| AI 文档结论“`Changelog.md` 已经是过程记录” | 该结论只看到阶段变更和度量，没有检查是否存在“问题、确认、纠正”的事件结构 | `node -e "console.log('process-event-table=' + require('node:fs').readFileSync('docs/Changelog.md', 'utf8').includes('如何防止复发'))"`<br>`process-event-table=false` | `e6643a2` 建立独立过程记录，`4002746` 把它改为结构演进主线；本提交继续拆开事件与提交索引 | `Process.md` 保持在门禁清单中，提交索引必须显式标注“不含评审内容” |
+
+提交索引与事件表使用同一批提交引用。覆盖范围按提交序列而不是日历天检查：
 
 ```powershell
 $total = (git rev-list --count HEAD) -as [int]

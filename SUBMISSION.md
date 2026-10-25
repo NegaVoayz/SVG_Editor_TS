@@ -49,13 +49,14 @@ node docs/demo.mjs
 778b3ed Task P4: record A/B parity fixes (arm B)
 ```
 
-Git 标签 `final` 固定在该行为基线。最终文档包使用单独的 `submission` 标签；
+`final` 是最终提交标签，指向包含源码、测试和全部文档的交付提交；
+`submission` 是同一提交的别名。`final` 的提交仍包含上述产品行为基线。
 归档时用标签解析真实提交，避免在文件里写入包含自己的提交哈希：
 
 ```sh
 git rev-parse final^{commit}
 git rev-parse submission^{commit}
-git archive --format=zip --output=../SVG_Editor_TS-submission.zip submission
+git archive --format=zip --output=../SVG_Editor_TS-final.zip final
 ```
 
 `git archive` 只打包已跟踪文件，因此不会包含本地 `node_modules/`、`dist/`、

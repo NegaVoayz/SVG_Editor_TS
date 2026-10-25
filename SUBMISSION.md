@@ -4,7 +4,7 @@
 以不可变节点、命令对象、Unit of Work、结构外置和 Visitor 为核心。
 它与 C++23 arm A 共享可观察命令语义，并把结构取舍、测试证据和已知边界一并交付。
 
-## 1. 三点验证
+## 1. 完整验证
 
 在包根执行：
 
@@ -13,6 +13,7 @@ npm ci
 npm run check
 npm test
 npm run build
+node docs/check_docs.mjs
 ```
 
 当前 `package-lock.json` 可直接用于 `npm ci`。期望尾行/结果：
@@ -22,6 +23,9 @@ npm run check   exit 0，tsc 与 eslint 无错误
 npm test        Test Files  9 passed (9)
                 Tests  132 passed (132)
 npm run build   exit 0，TypeScript 项目构建成功
+node docs/check_docs.mjs
+                docs/Consistency.md matches current checks
+                exit 0
 ```
 
 本次验证环境：
@@ -49,14 +53,14 @@ node docs/demo.mjs
 778b3ed Task P4: record A/B parity fixes (arm B)
 ```
 
-`final` 是最终提交标签，指向包含源码、测试和全部文档的交付提交，
-并保留上述产品行为基线。该标签同步到 `origin`：
-归档时用标签解析真实提交，避免在文件里写入包含自己的提交哈希：
+`final-2` 是不可移动的交付标签，指向包含源码、测试和全部文档的交付提交，
+并保留上述产品行为基线。已发布的标签不改指向；后续交付使用新标签。
+归档前先强制刷新标签，再断言标签与 HEAD 相同：
 
 ```sh
-git rev-parse final^{commit}
-git ls-remote --tags origin refs/tags/final
-git archive --format=zip --output=../SVG_Editor_TS-final.zip final
+git fetch --tags --force origin
+test "$(git rev-parse 'final-2^{commit}')" = "$(git rev-parse HEAD)"
+git archive --format=zip --output=../SVG_Editor_TS-final-2.zip final-2
 ```
 
 `git archive` 只打包已跟踪文件，因此不会包含本地 `node_modules/`、`dist/`、

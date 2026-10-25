@@ -10,6 +10,7 @@
 npm run check
 npm test
 npm run build
+node docs/check_docs.mjs
 ```
 
 期望结果：
@@ -19,6 +20,8 @@ npm run check   tsc --noEmit 与 eslint 成功（正常时无额外输出）
 npm test        Test Files  9 passed (9)
                 Tests  132 passed (132)
 npm run build   tsc -p tsconfig.build.json 成功
+node docs/check_docs.mjs
+                docs/Consistency.md matches current checks
 ```
 
 `check` 同时验证 TypeScript 编译和 ESLint。`strictTypeChecked` 不使用警告
@@ -137,7 +140,8 @@ staged 写没有修改已提交对象。`hive.test.ts` 也保留旧 snapshot 并
 4. 如果加入新节点或 Schema 字段，同步 `NODE_TYPES`、`SVG_SCHEMA`、
    `NodeVisitor` 的检查和 `tests/node-table.test.ts`；
 5. 若是读者/写者对称规则，在 `tests/model.test.ts` 做保存、读取、再保存；
-6. 最后运行三个验证命令，并把新用例计入文档，不使用估算数字。
+6. 最后运行三条代码验证命令和 `node docs/check_docs.mjs`，并把新用例计入
+   文档，不使用估算数字。
 
 polygon 的至少三个坐标对规则由 `Points.parse()` 统一承担，创建、Reader 和
 `set points` 都经过同一入口；CLI 测试同时覆盖成功更新与每条拒绝路径。

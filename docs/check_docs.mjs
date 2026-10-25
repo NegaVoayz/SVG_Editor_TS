@@ -92,9 +92,10 @@ function inputFingerprint(tracked) {
     if (file === consistencyFile) {
       continue;
     }
+    const objectId = git(["hash-object", `--path=${file}`, file]).output;
     hash.update(file, "utf8");
     hash.update("\0");
-    hash.update(readFileSync(join(root, file)));
+    hash.update(objectId, "utf8");
     hash.update("\0");
   }
   return hash.digest("hex").slice(0, 12);
@@ -230,11 +231,18 @@ function checkCommitReferences(files) {
 }
 
 function checkTags() {
-  const final = git(["rev-parse", "final^{commit}"], true);
+  const deliveryTag = "final-2";
+  const head = git(["rev-parse", "HEAD"], true);
+  const tag = git(["rev-parse", `${deliveryTag}^{commit}`], true);
+  const matches = head.ok && tag.ok && head.output === tag.output;
   check(
     "Delivery tag",
-    final.ok,
-    final.ok ? "final tag resolves to a commit" : "final is missing",
+    matches,
+    !tag.ok
+      ? `${deliveryTag} is missing`
+      : matches
+        ? `${deliveryTag} points to HEAD`
+        : `${deliveryTag} resolves to ${tag.output}, not HEAD ${head.output}`,
   );
 }
 

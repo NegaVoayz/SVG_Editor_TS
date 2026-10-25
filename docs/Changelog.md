@@ -5,6 +5,7 @@
 `it(...)` 数量统计，而不是今天的测试数量。
 
 基线最终提交为 `778b3ed`。它之后的文档提交不改变本文描述的产品行为。
+本文记录阶段变更，不承担评审过程记录；复审事件单独记录。
 
 ## 1. 阶段总表
 
@@ -169,4 +170,7 @@ Task Docs-D4: record architecture decisions (arm B)
 2. 代码提交先跑 `npm run check`、`npm test`、`npm run build`；
 3. 文档中的测试数、文件数和 SHA 来自实际命令，不靠回忆；
 4. 不把两个 C++ 参考项目、`node_modules/`、`dist/` 或临时 demo 文件带入本仓。
+5. 修改任何被一致性检查覆盖的已跟踪输入后，先运行
+   `node docs/check_docs.mjs --write`，提交报告，再运行默认命令确认 exit 0。
+6. 已发布标签不改指向；新交付使用新标签，并在归档前验证标签等于 HEAD。
 

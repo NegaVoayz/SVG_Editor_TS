@@ -31,6 +31,8 @@ export interface CompositeShapeProvider {
 
   describe(node: Element): string;
 
+  handlesAttribute(attribute: string): boolean;
+
   attributeTargets(
     document: Document,
     node: Element,

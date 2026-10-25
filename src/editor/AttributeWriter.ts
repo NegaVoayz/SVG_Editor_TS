@@ -93,6 +93,12 @@ export class AttributeWriter {
       if (targets.length > 0) {
         return this.setAttributeTargets(id, targets, command);
       }
+      if (composite.handlesAttribute(command.attributeName)) {
+        return Outcome.refused(
+          Kind.Change,
+          new CompositeMissingChild(command.target, "rect"),
+        );
+      }
     }
     const lengthValue = lengthValueOf(command);
     if (

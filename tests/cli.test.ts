@@ -583,6 +583,16 @@ describe("CLI behaviour", () => {
     const output = run(`read ${path}; set b content "x"; set b fill red`);
     expect(output).toContain("error: composite b has no label child");
     expect(output).toContain("g#b updated: fill=red");
+
+    const noOutline = join(directory, "missing-outline.svg");
+    writeFileSync(
+      noOutline,
+      '<svg xmlns="http://www.w3.org/2000/svg"><g id="o" data-kind="box"/></svg>',
+      "utf8",
+    );
+    expect(run(`read ${noOutline}; set o fill red`)).toContain(
+      "error: composite o has no rect child",
+    );
   });
 
   it("implements the composite box creation, propagation, and round trip", () => {

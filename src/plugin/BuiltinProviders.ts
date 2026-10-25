@@ -287,6 +287,10 @@ export class BoxProvider
     return "box";
   }
 
+  public handlesAttribute(attribute: string): boolean {
+    return attribute === "fill";
+  }
+
   public attributeTargets(
     document: Document,
     node: Element,

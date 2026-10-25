@@ -1,7 +1,7 @@
 # SVG Editor TypeScript
 
 This repository is arm B of the OOP comparison project described in
-[`OopPlan.md`](./OopPlan.md). It reimplements the observable behavior of the
+[`docs/OopPlan.md`](./docs/OopPlan.md). It reimplements the observable behavior of the
 C++23 SVG editor while using immutable model objects, command objects, a unit
 of work, a registry of shape providers, and visitor-based serialization.
 
@@ -31,12 +31,15 @@ cannot import editor, protocol, planner, I/O, UI, or CLI code.
 
 ## Development order
 
-Implementation follows the work packages in `OopPlan.md`: W0 scaffold,
+Implementation follows the work packages in `docs/OopPlan.md`: W0 scaffold,
 W1 values, W2 MVCC hive, W3 model and SVG I/O, W4 protocol, W5 editor,
 W6 planner/UI/CLI, and W7 oracle coverage. Each independently verifiable
 step is committed with `Task Wn: <name> (arm B)`.
 
 See [`docs/Architecture.md`](./docs/Architecture.md),
+[`docs/Manual.md`](./docs/Manual.md),
+[`docs/Testing.md`](./docs/Testing.md),
+[`docs/Decisions.md`](./docs/Decisions.md),
 [`docs/OopImpedanceLog.md`](./docs/OopImpedanceLog.md), and
 [`docs/DesignComparison.md`](./docs/DesignComparison.md).
 

@@ -12,9 +12,9 @@
 | BR-03 | `NodeBase + Node` 构成闭合联合，`NODE_TYPES` 保证构造表一致 |
 | BR-04 L1 | 31 个 Set 类、32 路 Parser switch 合并为 `ATTRIBUTES` 规格表 |
 | BR-04 L2 | Reader 合法性判断与 Writer 属性输出统一由 `SVG_SCHEMA` 驱动 |
-| BR-05 | Editor 从 1394 行降至 253 行，职责拆入 History、Naming、Attribute、Transform、Structure 服务 |
-| BR-06 | TreeStore 从 633 行降至 321 行，拆为 TreeLinks、TreeStructure、TreeIndex、TreeText |
-| BR-07 | SvgReader 从 526 行降至 146 行，XML 与 id 规则迁入 SVG schema |
+| BR-05 | Editor 在 BR 完成时从 1394 行降至 253 行，职责拆入 History、Naming、Attribute、Transform、Structure 服务；parity 后为 333 行 |
+| BR-06 | TreeStore 从 633 行降至 367 行，拆为 TreeLinks、TreeIndex、TreeText |
+| BR-07 | SvgReader 从 526 行降至 156 行，XML 与 id 规则迁入 SVG schema |
 | BR-08 | Refusal、EditEvent 使用闭合联合，渲染使用 exhaustive switch |
 | BR-09 | Box 识别、内容寻址和属性路由迁入 CompositeShapeProvider |
 
@@ -22,10 +22,11 @@
 
 | 指标 | 修复前 | 修复后 |
 | --- | ---: | ---: |
+| `instanceof` 命中行数 | 211 | 83 |
 | `instanceof` 文本出现次数 | 216 | 86 |
-| Editor 行数 | 1394 | 253 |
-| TreeStore 行数 | 633 | 321 |
-| SvgReader 行数 | 526 | 146 |
+| Editor 行数 | 1394 | 333（BR 时 253） |
+| TreeStore 行数 | 633 | 367 |
+| SvgReader 行数 | 526 | 156 |
 | SetCommands 行数 | 752 | 0 |
 
 收窄到具体节点类型的剩余判断主要用于结构能力边界：`ElementNode`、

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,16 +9,21 @@ import { fileURLToPath } from "node:url";
 const documents = resolve(dirname(fileURLToPath(import.meta.url)));
 const root = resolve(documents, "..");
 const consistencyPath = join(documents, "Consistency.md");
+const consistencyFile = "docs/Consistency.md";
+const acceptedArguments = new Set(["--write"]);
+const argumentsToCheck = process.argv.slice(2);
+const unexpectedArguments = argumentsToCheck.filter(
+  (argument) => !acceptedArguments.has(argument),
+);
+if (unexpectedArguments.length > 0) {
+  process.stderr.write(
+    `unknown argument${unexpectedArguments.length === 1 ? "" : "s"}: ${unexpectedArguments.join(", ")}\nusage: node docs/check_docs.mjs [--write]\n`,
+  );
+  process.exit(1);
+}
+const writeRequested = argumentsToCheck.includes("--write");
 const failures = [];
 const checks = [];
-
-if (!existsSync(consistencyPath)) {
-  writeFileSync(
-    consistencyPath,
-    "# 一致性自查报告\n\n正在生成。\n",
-    "utf8",
-  );
-}
 
 function run(command, args, allowFailure = false) {
   const result = spawnSync(command, args, {
@@ -78,6 +84,20 @@ function lineStats(files, nonblankOnly = false) {
 
 function markdownFiles(tracked) {
   return tracked.filter((file) => extname(file) === ".md");
+}
+
+function inputFingerprint(tracked) {
+  const hash = createHash("sha256");
+  for (const file of tracked) {
+    if (file === consistencyFile) {
+      continue;
+    }
+    hash.update(file, "utf8");
+    hash.update("\0");
+    hash.update(readFileSync(join(root, file)));
+    hash.update("\0");
+  }
+  return hash.digest("hex").slice(0, 12);
 }
 
 function slug(text) {
@@ -397,7 +417,8 @@ const workspace = git([
   "--others",
   "--exclude-standard",
 ]).output.split(/\r?\n/u).filter(Boolean);
-const markdown = markdownFiles(workspace);
+const markdown = markdownFiles(tracked);
+const documentedClaims = markdown.filter((file) => file !== consistencyFile);
 const sourceFiles = tracked.filter(
   (file) => file.startsWith("src/") && file.endsWith(".ts"),
 );
@@ -427,11 +448,11 @@ const instanceofOccurrences = grepLines.reduce(
 
 const commands = checkCommands();
 checkLinks(markdown);
-checkCommitReferences(markdown);
+checkCommitReferences(documentedClaims);
 checkTags();
-checkFacts(markdown);
+checkFacts(documentedClaims);
 checkPublishedStats(
-  markdown,
+  documentedClaims,
   sourceFiles.length,
   sourceNonblank,
   testFiles.length,
@@ -442,7 +463,6 @@ checkPublishedStats(
 );
 checkPackage(workspace);
 
-const sourceHead = git(["rev-parse", "--short=7", "HEAD"]).output;
 const rows = checks.map(
   (entry) =>
     `| ${entry.label} | ${entry.passed ? "PASS" : "FAIL"} | ${entry.evidence.replaceAll("|", "\\|")} |`,
@@ -450,7 +470,7 @@ const rows = checks.map(
 const report = [
   "# 一致性自查报告",
   "",
-  `由 \`node docs/check_docs.mjs\` 生成；检查时 HEAD 为 \`${sourceHead}\`。`,
+  `由 \`node docs/check_docs.mjs --write\` 生成。输入指纹为 \`${inputFingerprint(tracked)}\`；默认执行只校验本报告，不重写文件。`,
   "",
   "## 重算统计",
   "",
@@ -481,10 +501,24 @@ const report = [
   "",
 ].join("\n");
 
-writeFileSync(consistencyPath, report, "utf8");
 if (failures.length > 0) {
-  process.stderr.write(`${failures.join("\n")}\n`);
+  process.stderr.write(
+    `${failures.join("\n")}\nchecks failed; ${consistencyFile} was not written\n`,
+  );
   process.exitCode = 1;
+} else if (writeRequested) {
+  writeFileSync(consistencyPath, report, "utf8");
+  process.stdout.write(`wrote ${consistencyFile}; all checks passed\n`);
 } else {
-  process.stdout.write("wrote docs/Consistency.md; all checks passed\n");
+  const currentReport = existsSync(consistencyPath)
+    ? readFileSync(consistencyPath, "utf8")
+    : null;
+  if (currentReport !== report) {
+    process.stderr.write(
+      `${consistencyFile} is missing or stale; run \`node docs/check_docs.mjs --write\` and commit the result\n`,
+    );
+    process.exitCode = 1;
+  } else {
+    process.stdout.write(`${consistencyFile} matches current checks\n`);
+  }
 }

@@ -86,7 +86,7 @@ coverage 或临时 SVG。包根含 TypeScript 源码、测试、锁文件、配�
 | [`docs/Demo.md`](./docs/Demo.md) | 由脚本生成的完整会话与 A/B 互通记录 |
 | [`docs/Changelog.md`](./docs/Changelog.md) | W/T/BR/P 阶段、提交范围、度量和测试增长 |
 | [`docs/Limitations.md`](./docs/Limitations.md) | SVG 子集、已知缺陷和未验证风险 |
-| [`docs/Consistency.md`](./docs/Consistency.md) | 自动重算统计、链接、提交、标签和命令的一致性自查 |
+| [`docs/Consistency.md`](./docs/Consistency.md) | 校验统计、链接、提交、标签和命令的一致性；`--write` 显式重算 |
 
 [`docs/DesignComparison.md`](./docs/DesignComparison.md) 是开发期间的内部短对比，
 不是最终正式对比报告；其中数字是 `778b3ed` 快照，并已在本文档集中校正。

@@ -1,6 +1,6 @@
 # 一致性自查报告
 
-由 `node docs/check_docs.mjs` 生成；检查时 HEAD 为 `9f61dc0`。
+由 `node docs/check_docs.mjs --write` 生成。输入指纹为 `65f662d9c42b`；默认执行只校验本报告，不重写文件。
 
 ## 重算统计
 
@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | Verification commands | PASS | npm run check: exit 0; npm test: 9 files / 132 tests; npm run build: exit 0 |
 | Markdown links and anchors | PASS | 58 links checked; 0 broken |
-| Referenced commits | PASS | 20 references checked; 1 external; 0 missing |
+| Referenced commits | PASS | 19 references checked; 1 external; 0 missing |
 | Referenced commit titles | PASS | 5 titles checked; 0 mismatched |
 | Delivery tag | PASS | final tag resolves to a commit |
 | Documentation wording | PASS | none of 5 removed phrases occurs |

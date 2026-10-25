@@ -45,7 +45,10 @@ See [`docs/Architecture.md`](./docs/Architecture.md),
 [`docs/OopImpedanceLog.md`](./docs/OopImpedanceLog.md), and
 [`docs/DesignComparison.md`](./docs/DesignComparison.md). The generated
 [`docs/Consistency.md`](./docs/Consistency.md) report checks code/document
-statistics, links, commits, tags, and verification commands together.
+statistics, links, commits, tags, and verification commands together. Run
+`node docs/check_docs.mjs` to validate the committed report. After changing
+its inputs, run `node docs/check_docs.mjs --write` explicitly and commit the
+regenerated report.
 
 ## Configuration
 

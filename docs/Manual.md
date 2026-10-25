@@ -121,16 +121,19 @@ svg> set svg viewBox "0 0 800 600"
 svg updated: viewBox="0 0 800 600"
 ```
 
-`polygon` 的点由两两一组的坐标操作数构成。`create` 时写成扁平的坐标序列：
+`polygon` 的点由至少三个 x/y 坐标对构成。`create` 可以接受 A 风格的引号点串，
+也可以接受扁平的坐标操作数：
 
 ```text
-svg> create polygon tri 0 0 10 0 5 10 #00ff00
+svg> create polygon tri "0,0 10,0 5,10" #00ff00
 polygon#tri created
+svg> create polygon flat 0 0 10 0 10 10
+polygon#flat created
 ```
 
-当前 CLI 不接受把整段 `"0,0 10,0 5,10"` 当成一个坐标操作数；每个 x/y
-应各自是一个单词。创建时会接受至少两个点对，虽然标准 SVG polygon 通常至少
-需要三个点。`set points` 目前不是可编辑属性。
+点对可以用空格或逗号分隔。少于三对、坐标数为奇数或任一坐标无法解析时，
+创建会被拒绝。`set <id> points "<x,y ...>"` 会以不可变替换更新完整点表，
+并沿用同一条三对最小值规则。
 
 `transform` 是一个或多个以下函数，可空格或逗号分隔：
 
@@ -174,7 +177,7 @@ error: opacity must be between 0 and 1
 | `create circle <id> <cx> <cy> <r> [fill]` | 创建圆 |
 | `create ellipse <id> <cx> <cy> <rx> <ry> [fill]` | 创建椭圆 |
 | `create line <id> <x1> <y1> <x2> <y2> [stroke]` | 创建线段，颜色写入 stroke |
-| `create polygon <id> <x> <y> <x> <y> ... [fill]` | 创建多边形 |
+| `create polygon <id> "<x,y ...>" [fill]` | 创建多边形；也接受展开的 `<x> <y> ...` |
 | `create text <id> <x> <y> <content>` | 创建 text 包装节点及一个文本子节点 |
 | `create g <id>` | 创建空 group |
 | `create box <id> <x> <y> <w> <h> <label> [fill]` | 原子创建组合 box |
@@ -317,6 +320,7 @@ g#pair ungrouped into g#layer (2 elements)
 | `xmlns` | svg | 字符串 |
 | `viewBox` | svg | 四个有限数 |
 | `width`、`height` | rect 或 svg | 非负；svg 上必须为正 |
+| `points` | polygon | 至少三个坐标对 |
 
 在不适用的节点上设置属性会被拒绝，不会静默忽略：
 
@@ -376,11 +380,11 @@ rect#r moved by (1, 2)
 
 ```text
 svg> history 2
-8 +g#g6 created (HEAD)
-7 +g#g5 created
-6 +g#g4 created
+8  g#g6 created (HEAD)
+7  g#g5 created
+6  g#g4 created
 ... 4 commits folded ...
-1 +baseline
+1  baseline
 ```
 
 `checkout <commit> [n]` 切到可见分支中的提交，保留其上的 redo 分支，并打印
@@ -449,7 +453,7 @@ npm run check
 
 npm test
 # Test Files  9 passed (9)
-# Tests  128 passed (128)
+# Tests  132 passed (132)
 
 npm run build
 # tsc 无错误即成功

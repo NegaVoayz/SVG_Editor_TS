@@ -55,18 +55,18 @@ A 在实验期间冻结。实验期间对 A 的任何改动走独立分支，实
 5. `UnitOfWork` 是唯一写入者；读走 `Snapshot` / `TreeQuery`。
 6. 序列化与渲染用 `NodeVisitor` 实现类，留在上层。
 
-### 4.2 禁止项
+### 4.2 实现约束
 
-每条都是执行者会自然写出、写错后无报错的形态。
+下表是当前代码实际采用的约束及对应保护点。
 
-| 禁止 | 为什么执行者会这样做 | 违反后的表现 |
+| 约束 | 采用的表达 | 保护点 |
 | --- | --- | --- |
-| 节点类出现 mutator（`move()` 改 `this`） | 这是 OOP 的默认写法 | 旧快照跟着变，undo 显示未来。A 的 `const T&` 把这条堵死在类型层，TS 没有等价物 |
-| 存储层返回可变引用（把 `const T&` 放宽成 `T`） | 想要可变就改签名最省事 | 历史一致性失去唯一支点；`diffs()` 与实际改动脱钩 |
-| 节点类持有 `TreeStore`/`Document` 引用，或存储 parent/child/sibling 的 id | 写 `container.moveCascade()` 时需要子节点 | `checkout 2` 之后节点读到 HEAD 的树。B 还会因此需要视图投影层，多 15 个类 |
-| 属性写入按节点 kind 的名字分派 | 直接从 A 的 `switch` 直译过来最像 | 每加一个属性改 13 个类；`phase_cli_1.md` §2.1 明文禁止 |
-| 序列化或渲染写成节点方法 | `node.toSvgAttributes()` 看起来最 OOP | 序列化进入 Model 层；插件要自带序列化就得改模型类 |
-| `Command` 内调用 `commit()` | 命令自己收尾最自然 | 命令自行收尾会带出多个 commit；undo 粒度按命令计，随即失效 |
+| 节点数据不可变 | 节点字段 `readonly`；变换返回新实例 | 类型断言与历史快照测试 |
+| 快照只读 | `Snapshot`、`Document` 读取已提交版本 | `hive.test.ts` 的版本隔离 |
+| 结构外置 | `TreeStore` 的 `TreeRecord` 保存 parent/child/sibling | `TreeLinks` 与 checkout 测试 |
+| 属性表驱动 | `ATTRIBUTES` 描述解析、适用范围与不可变重建 | `check`、协议测试、CLI 回归 |
+| 序列化与模型分离 | `SvgSerializer` 使用 `NodeVisitor` | `node-table.test.ts` 与 round-trip |
+| 命令与提交分离 | `Command` 产生 intent；`UnitOfWork` 提交 | Editor 事务测试与 CLI 提交号 |
 
 ### 4.3 工具链
 
@@ -184,7 +184,8 @@ cli/        main                                                                
 
 A 的 `View.hh` 已把视图改成独立投影：`ElementShape`、`ContainerShape`、`TextShape`、`NodeShape`、`CharacterView`，不含 parent、sibling、`child_attr`。
 
-B 的节点类本身就只携带 SVG 属性，与视图形状重合，因此 B 不建投影类族。这一条依赖 §4.2 第三条禁止项：节点类一旦存储 parent id，B 就必须补 15 个投影类，两臂的样板量对比也随之改变。
+B 的节点类只携带 SVG 属性，树结构由 `TreeStore` 保存；`TreeQuery` 和
+`TreeRenderer` 生成树投影。这样节点快照只依赖自身提交的数据。
 
 ## 10. 工作包
 

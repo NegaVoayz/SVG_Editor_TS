@@ -20,7 +20,7 @@ npm run build
 ```text
 npm run check   exit 0，tsc 与 eslint 无错误
 npm test        Test Files  9 passed (9)
-                Tests  128 passed (128)
+                Tests  132 passed (132)
 npm run build   exit 0，TypeScript 项目构建成功
 ```
 
@@ -49,13 +49,13 @@ node docs/demo.mjs
 778b3ed Task P4: record A/B parity fixes (arm B)
 ```
 
-`final` 是最终提交标签，指向包含源码、测试和全部文档的交付提交；
-`submission` 是同一提交的别名。`final` 的提交仍包含上述产品行为基线。
+`final` 是最终提交标签，指向包含源码、测试和全部文档的交付提交，
+并保留上述产品行为基线。该标签同步到 `origin`：
 归档时用标签解析真实提交，避免在文件里写入包含自己的提交哈希：
 
 ```sh
 git rev-parse final^{commit}
-git rev-parse submission^{commit}
+git ls-remote --tags origin refs/tags/final
 git archive --format=zip --output=../SVG_Editor_TS-final.zip final
 ```
 
@@ -80,12 +80,13 @@ coverage 或临时 SVG。包根含 TypeScript 源码、测试、锁文件、配�
 | 文档 | 内容 |
 | --- | --- |
 | [`docs/Manual.md`](./docs/Manual.md) | B 自己的完整命令、值、历史和 I/O 手册 |
-| [`docs/Testing.md`](./docs/Testing.md) | 9 个测试文件、128 条用例、类型级断言和未覆盖项 |
+| [`docs/Testing.md`](./docs/Testing.md) | 9 个测试文件、132 条用例、类型级断言和未覆盖项 |
 | [`docs/RequirementsMap.md`](./docs/RequirementsMap.md) | 可确认需求到模块、测试、文档的证据链 |
-| [`docs/Decisions.md`](./docs/Decisions.md) | 八条设计决策、被否决方案和代价 |
+| [`docs/Decisions.md`](./docs/Decisions.md) | 八条设计决策、约束与代价 |
 | [`docs/Demo.md`](./docs/Demo.md) | 由脚本生成的完整会话与 A/B 互通记录 |
 | [`docs/Changelog.md`](./docs/Changelog.md) | W/T/BR/P 阶段、提交范围、度量和测试增长 |
 | [`docs/Limitations.md`](./docs/Limitations.md) | SVG 子集、已知缺陷和未验证风险 |
+| [`docs/Consistency.md`](./docs/Consistency.md) | 自动重算统计、链接、提交、标签和命令的一致性自查 |
 
 [`docs/DesignComparison.md`](./docs/DesignComparison.md) 是开发期间的内部短对比，
 不是最终正式对比报告；其中数字是 `778b3ed` 快照，并已在本文档集中校正。
@@ -99,6 +100,7 @@ docs/
   Architecture.md DesignComparison.md OopImpedanceLog.md OopPlan.md
   StructuralRefactor.md Manual.md Testing.md RequirementsMap.md
   Decisions.md Demo.md demo.mjs Changelog.md Limitations.md
+  Consistency.md check_docs.mjs
 src/
 tests/
 package.json package-lock.json
@@ -106,23 +108,18 @@ tsconfig.json tsconfig.build.json
 eslint.config.mjs vitest.config.ts
 ```
 
-代码统计按 `778b3ed` 的 `src/**/*.ts` 非空行：110 个文件、10,176 行。
-测试统计为 9 个文件、1,743 个物理行、128 条测试。
+当前代码统计按 `src/**/*.ts` 非空行：111 个文件、10,260 行。
+测试统计为 9 个文件、1,801 个物理行、132 条测试。
 
 ## 5. 已知限制
 
 完整清单见 [`docs/Limitations.md`](./docs/Limitations.md)。提交时最需要知道的
-五项是：
+四项是：
 
 1. SVG 子集不包含 `use`、`path`、渐变、filter、CSS style 等完整资源语义；
-2. polygon 少于三个点仍会创建，且 `set points` 未实现；
-3. box 标签使用固定 `(x+20, y+35)` 偏移，没有排版测量；
-4. TypeScript `double` 与 A 的 `float` 在极端精度和 transform 输出上可能不同；
-5. 没有 fuzz、性能、并发读者或恶意深 XML 的认证。
-
-正式作业要求原文当前不在工作区，因此
-[`docs/RequirementsMap.md`](./docs/RequirementsMap.md) 明确区分“可确认目标”与
-“待补原文”，没有伪造题面编号。
+2. box 标签使用固定 `(x+20, y+35)` 偏移，没有排版测量；
+3. TypeScript `double` 与 A 的 `float` 在极端精度和 transform 输出上可能不同；
+4. 没有 fuzz、性能、并发读者或恶意深 XML 的认证。
 
 ## 6. 仓库边界
 

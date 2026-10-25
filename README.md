@@ -40,8 +40,12 @@ See [`docs/Architecture.md`](./docs/Architecture.md),
 [`docs/Manual.md`](./docs/Manual.md),
 [`docs/Testing.md`](./docs/Testing.md),
 [`docs/Decisions.md`](./docs/Decisions.md),
+[`docs/RequirementsMap.md`](./docs/RequirementsMap.md),
+[`docs/Demo.md`](./docs/Demo.md),
 [`docs/OopImpedanceLog.md`](./docs/OopImpedanceLog.md), and
-[`docs/DesignComparison.md`](./docs/DesignComparison.md).
+[`docs/DesignComparison.md`](./docs/DesignComparison.md). The generated
+[`docs/Consistency.md`](./docs/Consistency.md) report checks code/document
+statistics, links, commits, tags, and verification commands together.
 
 ## Configuration
 

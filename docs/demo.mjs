@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
+  readdirSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -17,22 +18,44 @@ const demoDirectory = mkdtempSync(join(tmpdir(), "svg-editor-ts-demo-"));
 const bFile = join(demoDirectory, "from-b.svg");
 const aFile = join(demoDirectory, "from-a.svg");
 const duplicateFile = join(demoDirectory, "duplicate.svg");
-const executable =
-  process.env["SVG_EDITOR_A"] ??
-  resolve(
+function findAExecutable() {
+  const explicit = process.env["SVG_EDITOR_A_EXE"];
+  if (explicit !== undefined && existsSync(explicit)) {
+    return explicit;
+  }
+  const buildDirectory = resolve(
     root,
     "..",
     "..",
     "CPP",
     "SVG_Editor",
     "build",
-    "ninja-release",
-    "Ui",
-    "svg-editor.exe",
   );
+  if (!existsSync(buildDirectory)) {
+    return null;
+  }
+  const candidates = readdirSync(buildDirectory, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(buildDirectory, entry.name, "Ui"))
+    .flatMap((directory) => [
+      join(directory, "svg-editor.exe"),
+      join(directory, "svg-editor"),
+    ])
+    .filter((path) => existsSync(path))
+    .sort((left, right) => {
+      const leftRelease = left.includes("release") ? 0 : 1;
+      const rightRelease = right.includes("release") ? 0 : 1;
+      return leftRelease - rightRelease || left.localeCompare(right);
+    });
+  return candidates[0] ?? null;
+}
+
+const executable = findAExecutable();
 
 function redact(text) {
   return text
+    .replaceAll("\r\n", "\n")
+    .replaceAll("\r", "\n")
     .replaceAll(demoDirectory.replaceAll("\\", "\\\\"), "<demo-dir>")
     .replaceAll(demoDirectory, "<demo-dir>")
     .replaceAll(demoDirectory.replaceAll("\\", "/"), "<demo-dir>")
@@ -86,10 +109,11 @@ function runInstructions(session, instructions) {
 }
 
 function runA(instructions) {
-  if (!existsSync(executable)) {
+  if (executable === null) {
     return {
       ok: false,
-      output: `A executable not found at <demo-dir>/../CPP/SVG_Editor/build/ninja-release/Ui/svg-editor.exe; cross-check skipped.`,
+      output:
+        "A executable not found; set SVG_EDITOR_A_EXE or build arm A. Cross-check skipped.",
     };
   }
   const result = spawnSync(executable, [instructions], {
@@ -102,9 +126,15 @@ function runA(instructions) {
   };
 }
 
-const checkOutput = runNpm("check");
+runNpm("check");
 const testOutput = runNpm("test");
-const buildOutput = runNpm("build");
+runNpm("build");
+const testSummary = /Test Files\s+(\d+) passed[\s\S]*?Tests\s+(\d+) passed/u.exec(
+  testOutput,
+);
+if (testSummary === null) {
+  throw new Error(`cannot read test summary:\n${testOutput}`);
+}
 const { Session } = await import("../dist/ui/Session.js");
 
 const basics = new Session();
@@ -118,7 +148,8 @@ const basicTranscript = runInstructions(
     "create circle c 50 60 10 #00ff00 in layer",
     "create ellipse e 70 80 20 10 blue in layer",
     "create line ln 0 0 10 10 #000000 in layer",
-    "create polygon p 0 0 16 0 8 14 #00ff00 in layer",
+    "create polygon p \"0,0 16,0 8,14\" #00ff00 in layer",
+    "set p points \"0,0 16,0 8,14 6,16\"",
     "create text t 20 140 \"Hello SVG\" in layer",
     "set r opacity 0.75",
     "set t text \"Changed text\"",
@@ -246,32 +277,9 @@ const report = [
   "## 1. 三项验证",
   "",
   "```text",
-  "PASS npm run check",
-  "PASS npm test",
-  "PASS npm run build",
-  "```",
-  "",
-  "本次实际尾行：",
-  "",
-  "```text",
-  ...testOutput
-    .split("\n")
-    .filter(
-      (line) =>
-        line.includes("Test Files") ||
-        line.includes("Tests") ||
-        line.includes("Duration"),
-    ),
-  "```",
-  "",
-  "`check` 原始输出只有 npm 脚本命令本身：",
-  "```text",
-  checkOutput,
-  "```",
-  "",
-  "`build` 同样以退出码 0 为准：",
-  "```text",
-  buildOutput,
+  "PASS npm run check   exit 0",
+  `PASS npm test        ${testSummary[1]} files / ${testSummary[2]} tests`,
+  "PASS npm run build   exit 0",
   "```",
   "",
   "## 2. 基本图元、值与视图",
@@ -360,8 +368,9 @@ const report = [
   "node docs/demo.mjs",
   "```",
   "",
-  "脚本需要仓库内已有的 `node_modules` 或可用的 npm cache；不访问网络。若要指定",
-  "A 可执行文件，可设置 `SVG_EDITOR_A` 环境变量。生成结束后临时目录会被删除。",
+  "脚本需要仓库内已有的 `node_modules` 或可用的 npm cache。若要指定 A 可执行文件，",
+  "可设置 `SVG_EDITOR_A_EXE`；否则脚本按 `build/*/Ui/svg-editor[.exe]` 查找并优先",
+  "使用 release 构建。生成结束后临时目录会被删除。",
   "",
 ].join("\n");
 

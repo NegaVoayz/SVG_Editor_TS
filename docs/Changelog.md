@@ -20,6 +20,7 @@
 | T1–T6 | `5484581` | zoom、opacity、polygon、box、history cap、move 默认策略 | 120 |
 | BR-01–09 | `2057fd7`…`8c5a709` | 结构修复与验收文档 | 120 → 124 |
 | P1–P4 | `b74446b`…`778b3ed` | A/B parity #4–#10 修复与记录 | 124 → 128 |
+| Issues R1 | `278aaa4` 起 | polygon 值校验与 `set points`、box 结构拒绝、history 显示 | 128 → 132 |
 
 W6 的起点已经有 Planner/UI/CLI，`3684dd9` 只修正管道会话；`5484581` 在两者
 之间加入 T1–T6，所以不能把 W6 简单写成单个提交。
@@ -83,6 +84,13 @@ transform、属性与历史写入 Editor 及其协作者。W6 把 Parser/Planner
 | `8ee9b1e` | 修复最后子容器下的多余竖线，树前缀按行增量维护 |
 | `778b3ed` | 记录 parity 结论、测试和结构统计 |
 
+### Issues R1：第二轮问题闭合
+
+- polygon 创建同时接受引号点串和展开操作数；
+- 创建、Reader 与 `set points` 共用 `Points` 三点最小值；
+- `tree`/`show` 给 points 加引号，history 去掉了无语义的 `+`；
+- 无 `label` 或 `rect` 的标记 box 返回结构明确的拒绝。
+
 ## 3. 结构度量
 
 以下数字来自 `778b3ed` 的源码，文件行数为物理行：
@@ -108,9 +116,9 @@ git grep -h instanceof 778b3ed -- 'src/**/*.ts' |
   Select-String -Pattern instanceof -AllMatches
 ```
 
-`3684dd9` 有 216 次文本出现、211 个命中行；`778b3ed` 降到 86 次出现、83 个
-命中行。三条行各含两个判断，解释了 86 和 83 的差。剩余判断位于类族边界、
-值对象或错误类型检查；SVG 标签分派使用 `elementName`。
+`3684dd9` 有 216 次文本出现、211 个命中行；当前版本为 88 次出现、85 个
+命中行。剩余判断位于类族边界、值对象或错误类型检查；SVG 标签分派使用
+`elementName`。
 
 ## 4. 测试增长
 
@@ -123,6 +131,7 @@ git grep -h instanceof 778b3ed -- 'src/**/*.ts' |
 | `50df835` | 1 | 127 |
 | `8ee9b1e` | 1 | 128 |
 | `778b3ed` | 0 | 128 |
+| `278aaa4` | 4 | 132 |
 
 具体新增用例：
 
@@ -135,9 +144,9 @@ git grep -h instanceof 778b3ed -- 'src/**/*.ts' |
 - P2：`shows HEAD, the requested neighbours, folded commits, and baseline`；
 - P3：`does not draw a branch bar below a last-child container`。
 
-最终分布是 `cli.test.ts` 76 条、`editor.test.ts` 7 条、`hive.test.ts` 13 条、
+当前分布是 `cli.test.ts` 79 条、`editor.test.ts` 7 条、`hive.test.ts` 13 条、
 `model.test.ts` 9 条、`node-table.test.ts` 3 条、`protocol.test.ts` 2 条、
-`scaffold.test.ts` 1 条、`type-safety.test.ts` 3 条、`values.test.ts` 14 条。
+`scaffold.test.ts` 1 条、`type-safety.test.ts` 3 条、`values.test.ts` 15 条。
 测试策略见 [Testing.md](./Testing.md)。
 
 ## 5. 提交规范

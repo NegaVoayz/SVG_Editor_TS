@@ -1,6 +1,6 @@
 # 测试策略与覆盖说明
 
-本文对应基线 `778b3ed` 的 9 个测试文件、128 条 Vitest 用例。测试不是按文件
+本文对应当前实现的 9 个测试文件、132 条 Vitest 用例。测试不是按文件
 数量追求覆盖率的堆积，而是把 CLI 行为、不可变模型、MVCC 历史、类型约束和
 文档 Schema 分层固定下来。
 
@@ -17,7 +17,7 @@ npm run build
 ```text
 npm run check   tsc --noEmit 与 eslint 成功（正常时无额外输出）
 npm test        Test Files  9 passed (9)
-                Tests  128 passed (128)
+                Tests  132 passed (132)
 npm run build   tsc -p tsconfig.build.json 成功
 ```
 
@@ -31,7 +31,7 @@ npm run build   tsc -p tsconfig.build.json 成功
 
 | 文件 | 行 | 用例 | 守住的层 | 删除它后最容易静默的问题 |
 | --- | ---: | ---: | --- | --- |
-| `tests/cli.test.ts` | 642 | 76 | Session、Parser、Planner、Editor、Renderer 的可观察行为 | 命令路由、输出措辞、提交边界和历史窗口出现回归 |
+| `tests/cli.test.ts` | 690 | 79 | Session、Parser、Planner、Editor、Renderer 的可观察行为 | 命令路由、输出措辞、提交边界和历史窗口出现回归 |
 | `tests/editor.test.ts` | 255 | 7 | Editor 与其协作者的事务级行为 | 属性写入、cascade、group 顺序和 box 内部结构失配 |
 | `tests/hive.test.ts` | 280 | 13 | MVCC 版本链、commit、undo/redo、prune | 旧快照被污染，或 redo 尾部和 checkout 语义悄悄改变 |
 | `tests/model.test.ts` | 218 | 9 | 树链接、Loader/Reader/Writer round-trip | 节点仍在但父子顺序、id 或 SVG 文本已经损坏 |
@@ -39,12 +39,12 @@ npm run build   tsc -p tsconfig.build.json 成功
 | `tests/protocol.test.ts` | 71 | 2 | 协议投影与冻结的 attribute command | 树投影和不可变属性路径逐渐偏离协议 |
 | `tests/scaffold.test.ts` | 9 | 1 | 包的公开身份 | 构建入口被误改到另一个项目名称 |
 | `tests/type-safety.test.ts` | 106 | 3 | 类型系统与运行时事务守卫 | 编译期承诺退化成 `any`，或 staged 写提前泄漏 |
-| `tests/values.test.ts` | 118 | 14 | 数字、长度、颜色、ViewBox、Transform | 显示精度、单位兼容和序列化拼写漂移 |
-| **合计** | **1,743** | **128** | 从值对象到 CLI 的完整链路 | 单层通过但端到端语义改变 |
+| `tests/values.test.ts` | 128 | 15 | 数字、长度、颜色、ViewBox、Transform、Points | 显示精度、单位兼容和序列化拼写漂移 |
+| **合计** | **1,801** | **132** | 从值对象到 CLI 的完整链路 | 单层通过但端到端语义改变 |
 
 ## 3. CLI 回归守什么
 
-`cli.test.ts` 的 76 个 `it` 标题本身就是全仓最接近“用户规则清单”的地方。
+`cli.test.ts` 的 79 个 `it` 标题本身就是全仓最接近“用户规则清单”的地方。
 按职责可分为以下几组：
 
 - **启动和输出协议：** 未初始化拒绝、`init`、`tree`、`show`、`canvas`、
@@ -56,7 +56,7 @@ npm run build   tsc -p tsconfig.build.json 成功
   空容器、零位移、非法因子；
 - **历史和 I/O：** undo/redo、checkout、commit 连续性、折叠窗口、cap、
   read/save、无来源路径、未命名 id 与保留 id 重命名；
-- **扩展图元：** zoom 不提交、opacity 全链路、polygon 点列表、box fill、
+- **扩展图元：** zoom 不提交、opacity 全链路、polygon 三对最小值与 `set points`、box fill、
   content、派生 id 冲突、round-trip 和禁止 ungroup；
 - **parity 回归：** `history n` 的 HEAD+n 邻居窗口、最后一个子容器后的树线、
   box 第六个 fill 操作数。
@@ -124,10 +124,6 @@ staged 写没有修改已提交对象。`hive.test.ts` 也保留旧 snapshot 并
 - 没有 property-based/fuzz 测试；XML parser 和 transform 数学只覆盖手选边界。
 - 没有性能基准、内存上限或大文件退化测试。
 - 没有并发 reader/writer 测试；`writerActive` 的拒绝路径只有代码审查证据。
-- `polygon` 创建只要求至少两个点对，少于标准 SVG 所需的三点仍会成功。
-  这是 [Limitations.md](./Limitations.md) 中的已知缺陷，不应把测试全绿解释成
-  标准 SVG 完整性。
-- `set points` 没有实现，polygon 点数只能在创建时决定。
 - 文件 I/O 只验证支持的子集，不验证完整 SVG 1.1/2 特性。
 
 ## 7. 新增一条规则的落点
@@ -142,6 +138,9 @@ staged 写没有修改已提交对象。`hive.test.ts` 也保留旧 snapshot 并
    `NodeVisitor` 的检查和 `tests/node-table.test.ts`；
 5. 若是读者/写者对称规则，在 `tests/model.test.ts` 做保存、读取、再保存；
 6. 最后运行三个验证命令，并把新用例计入文档，不使用估算数字。
+
+polygon 的至少三个坐标对规则由 `Points.parse()` 统一承担，创建、Reader 和
+`set points` 都经过同一入口；CLI 测试同时覆盖成功更新与每条拒绝路径。
 
 测试名称应写“系统应拒绝/保持什么”，而不是复述实现函数名。CLI 用例尤其应
 至少断言一个成功输出、一个拒绝输出和必要的文档/HEAD 不变性。

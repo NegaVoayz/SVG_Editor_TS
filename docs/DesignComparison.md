@@ -14,9 +14,9 @@
 | W4 | Command、Attribute、Event、Refusal、View 协议 |
 | W5 | Editor、拓扑编辑、参数/Transform 策略、ShapeProvider |
 | W6 | Planner、Parser、Renderer、交互 CLI |
-| W7 | 108 条主回归；扩展与 parity 后为 128 条通过测试（`cli.test.ts` 占 76 条） |
+| W7 | 108 条主回归；扩展与后续修复后为 132 条通过测试（`cli.test.ts` 占 79 条） |
 
-当前统计为 110 个 TypeScript 源文件、10,176 个非空源码行、128 个通过测试。
+当前统计为 111 个 TypeScript 源文件、10,260 个非空源码行、132 个通过测试。
 C++ 参考目录静态统计为 83 个 `.hh/.cc` 文件（73 个产品文件 + 10 个测试文件）、
 12,677 个非空行。
 
@@ -26,7 +26,7 @@ C++ 参考目录静态统计为 83 个 `.hh/.cc` 文件（73 个产品文件 + 1
 | --- | --- |
 | T1 `zoom` | Session 显示状态；不创建提交，不改变文档 |
 | T2 `opacity` | tree/show/save/read 全链路，范围 0..1 |
-| T3 `polygon` | 新节点、Reader/Writer、Provider、move/scale |
+| T3 `polygon` | 新节点、Reader/Writer、Provider、`set points`、move/scale |
 | T4 `box` | 组合创建、fill/label 传播、data-kind 往返、解组拒绝 |
 | T5 history cap | `SessionOptions.historyLimit` 与 `SVG_EDITOR_HISTORY_LIMIT` |
 | T6 move default | 默认矩阵移动；`SessionOptions.moveDefaultsToTransform=false` 保留旧默认 |

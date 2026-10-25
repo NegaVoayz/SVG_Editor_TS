@@ -1,6 +1,6 @@
 # 可复现演示会话
 
-生成时的代码 HEAD：`446b0aa`。本文件由 `node docs/demo.mjs` 生成；
+生成时的代码 HEAD：`9f61dc0`。本文件由 `node docs/demo.mjs` 生成；
 脚本先验证、再构建，然后直接驱动同一个 `Session` 类产生下列输出。
 临时 SVG 路径在文本中替换为 `<demo-dir>`，所以重启脚本不会改变路径噪音。
 
@@ -10,29 +10,9 @@
 ## 1. 三项验证
 
 ```text
-PASS npm run check
-PASS npm test
-PASS npm run build
-```
-
-本次实际尾行：
-
-```text
- Test Files  9 passed (9)
-      Tests  128 passed (128)
-   Duration  2.45s (transform 8.63s, setup 0ms, import 13.62s, tests 266ms, environment 2ms)
-```
-
-`check` 原始输出只有 npm 脚本命令本身：
-```text
-> svg-editor-ts@0.1.0 check
-> tsc --noEmit && eslint . --max-warnings 0
-```
-
-`build` 同样以退出码 0 为准：
-```text
-> svg-editor-ts@0.1.0 build
-> tsc -p tsconfig.build.json
+PASS npm run check   exit 0
+PASS npm test        9 files / 132 tests
+PASS npm run build   exit 0
 ```
 
 ## 2. 基本图元、值与视图
@@ -52,8 +32,10 @@ svg> create ellipse e 70 80 20 10 blue in layer
 ellipse#e created in g#layer
 svg> create line ln 0 0 10 10 #000000 in layer
 line#ln created in g#layer
-svg> create polygon p 0 0 16 0 8 14 #00ff00 in layer
+svg> create polygon p "0,0 16,0 8,14" #00ff00 in layer
 polygon#p created in g#layer
+svg> set p points "0,0 16,0 8,14 6,16"
+polygon#p updated: points="0,0 16,0 8,14 6,16"
 svg> create text t 20 140 "Hello SVG" in layer
 text#t created in g#layer
 svg> set r opacity 0.75
@@ -77,7 +59,7 @@ svg (640 x 480 user units)
     ├── circle#c   cx=50 cy=60 r=10 fill=#00ff00
     ├── ellipse#e  cx=70 cy=80 rx=20 ry=10 fill=blue
     ├── line#ln    x1=0 y1=0 x2=10 y2=10 stroke=#000000
-    ├── polygon#p  points=0,0 16,0 8,14 fill=#00ff00
+    ├── polygon#p  points="0,0 16,0 8,14 6,16" fill=#00ff00
     └── text#t     (20,140) text="Changed text"
 ```
 
@@ -177,43 +159,43 @@ g#g5 created
 svg> create g g6
 g#g6 created
 svg> history 2
-8 +g#g6 created (HEAD)
-7 +g#g5 created
-6 +g#g4 created
+8  g#g6 created (HEAD)
+7  g#g5 created
+6  g#g4 created
 ... 4 commits folded ...
-1 +baseline
+1  baseline
 svg> zoom 2
 zoom 2x
 svg> history 2
-8 +g#g6 created (HEAD)
-7 +g#g5 created
-6 +g#g4 created
+8  g#g6 created (HEAD)
+7  g#g5 created
+6  g#g4 created
 ... 4 commits folded ...
-1 +baseline
+1  baseline
 svg> undo
 undo: g#g6 created (HEAD 7)
 svg> redo
 redo: g#g6 created (HEAD 8)
 svg> checkout 5
 checked out 5
-8 +g#g6 created
-7 +g#g5 created
-6 +g#g4 created
-5 +g#g3 created (HEAD)
-4 +g#g2 created
-3 +g#g1 created
-2 +g#g0 created
-1 +baseline
+8  g#g6 created
+7  g#g5 created
+6  g#g4 created
+5  g#g3 created (HEAD)
+4  g#g2 created
+3  g#g1 created
+2  g#g0 created
+1  baseline
 svg> checkout 8
 checked out 8
-8 +g#g6 created (HEAD)
-7 +g#g5 created
-6 +g#g4 created
-5 +g#g3 created
-4 +g#g2 created
-3 +g#g1 created
-2 +g#g0 created
-1 +baseline
+8  g#g6 created (HEAD)
+7  g#g5 created
+6  g#g4 created
+5  g#g3 created
+4  g#g2 created
+3  g#g1 created
+2  g#g0 created
+1  baseline
 ```
 
 `zoom` 前后同一 `history 2` 完全相同；它只改变前端倍率。`checkout 5` 后
@@ -326,5 +308,6 @@ npm ci
 node docs/demo.mjs
 ```
 
-脚本需要仓库内已有的 `node_modules` 或可用的 npm cache；不访问网络。若要指定
-A 可执行文件，可设置 `SVG_EDITOR_A` 环境变量。生成结束后临时目录会被删除。
+脚本需要仓库内已有的 `node_modules` 或可用的 npm cache。若要指定 A 可执行文件，
+可设置 `SVG_EDITOR_A_EXE`；否则脚本按 `build/*/Ui/svg-editor[.exe]` 查找并优先
+使用 release 构建。生成结束后临时目录会被删除。

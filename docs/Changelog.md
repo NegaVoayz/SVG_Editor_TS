@@ -170,7 +170,7 @@ Task Docs-D4: record architecture decisions (arm B)
 2. 代码提交先跑 `npm run check`、`npm test`、`npm run build`；
 3. 文档中的测试数、文件数和 SHA 来自实际命令，不靠回忆；
 4. 不把两个 C++ 参考项目、`node_modules/`、`dist/` 或临时 demo 文件带入本仓。
-5. 修改任何被一致性检查覆盖的已跟踪输入后，先运行
-   `node docs/check_docs.mjs --write`，提交报告，再运行默认命令确认 exit 0。
+5. 修改任何被一致性检查覆盖的输入后，先把新增文件加入 Git 索引，再运行
+   `node docs/check_docs.mjs --write`，提交报告，最后运行默认命令确认 exit 0。
 6. 已发布标签不改指向；新交付使用新标签，并在归档前验证标签等于 HEAD。
 

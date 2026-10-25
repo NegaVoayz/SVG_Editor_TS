@@ -1,6 +1,6 @@
 # 一致性自查报告
 
-由 `node docs/check_docs.mjs --write` 生成。输入指纹为 `417cc9857ff2`；默认执行只校验本报告，不重写文件。
+由 `node docs/check_docs.mjs --write` 生成。输入指纹为 `0f931c836e78`；默认执行只校验本报告，不重写文件。
 
 ## 重算统计
 
@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | Verification commands | PASS | npm run check: exit 0; npm test: 9 files / 132 tests; npm run build: exit 0 |
 | Markdown links and anchors | PASS | 61 links checked; 0 broken |
-| Referenced commits | PASS | 19 references checked; 1 external; 0 missing |
+| Referenced commits | PASS | 21 references checked; 1 external; 0 missing |
 | Referenced commit titles | PASS | 5 titles checked; 0 mismatched |
 | Delivery tag | PASS | final-2 points to HEAD |
 | Documentation wording | PASS | none of 5 removed phrases occurs |

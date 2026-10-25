@@ -60,10 +60,14 @@ export class TreeRenderer {
   public constructor(private readonly shapes: ShapeRegistry) {}
 
   public render(view: TreeView): string {
+    const followed: boolean[] = [false];
     const lines = view.rows.map((row, index) => {
       let prefix = "";
       if (index > 0) {
-        const followed = this.followedAt(view.rows, row.depth, index);
+        while (followed.length <= row.depth) {
+          followed.push(false);
+        }
+        followed[row.depth] = !row.last;
         for (let level = 1; level < row.depth; level += 1) {
           prefix += followed[level] ? "│   " : "    ";
         }
@@ -106,27 +110,6 @@ export class TreeRenderer {
       return `${output} ${details[0] ?? ""}`;
     }
     return `${output}${details.map((detail) => `\n  ${detail}`).join("")}`;
-  }
-
-  private followedAt(
-    rows: TreeView["rows"],
-    depth: number,
-    index: number,
-  ): boolean[] {
-    const followed = Array.from<boolean>({ length: depth + 1 }).fill(false);
-    for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
-      const row = rows[cursor];
-      if (row === undefined) {
-        continue;
-      }
-      if (row.depth < depth && followed[row.depth] === false) {
-        followed[row.depth] = !row.last;
-      }
-      if (row.depth === 0) {
-        break;
-      }
-    }
-    return followed;
   }
 
   private nodeLabel(node: Node): string {

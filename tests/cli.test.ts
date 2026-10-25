@@ -39,6 +39,20 @@ describe("CLI behaviour", () => {
     );
   });
 
+  it("does not draw a branch bar below a last-child container", () => {
+    const output = run(
+      "init; create g a; create g b; create rect x 0 0 1 1 in b; tree",
+    );
+    const line = output
+      .split("\n")
+      .find(
+        (candidate) =>
+          candidate.includes("rect#x") && candidate.includes("x=0"),
+      );
+    expect(line?.startsWith("    \u2514\u2500\u2500 rect#x")).toBe(true);
+    expect(line).not.toContain("\u2502");
+  });
+
   it("moves a leaf transform", () => {
     expect(
       run("init; create rect r 0 0 10 10; move r 5 0 transform; show r"),

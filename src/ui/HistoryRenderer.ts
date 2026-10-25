@@ -24,17 +24,28 @@ export class HistoryRenderer {
       ...rows.map((row) => String(row.commit).length),
       1,
     );
-    return rows
-      .map((row) => {
-        const head = row.commit === view.head ? " (HEAD)" : "";
-        const text = row.baseline
-          ? "baseline"
-          : row.event === null
-            ? "edit"
-            : this.events.render(row.event);
-        return `${String(row.commit).padStart(width, " ")} +${text}${head}`;
-      })
-      .join("\n");
+    const lines: string[] = [];
+    rows.forEach((row, index) => {
+      const previous = rows[index - 1];
+      if (previous !== undefined) {
+        const folded = previous.position - row.position - 1;
+        if (folded > 0) {
+          lines.push(
+            `... ${String(folded)} ${folded === 1 ? "commit" : "commits"} folded ...`,
+          );
+        }
+      }
+      const head = row.commit === view.head ? " (HEAD)" : "";
+      const text = row.baseline
+        ? "baseline"
+        : row.event === null
+          ? "edit"
+          : this.events.render(row.event);
+      lines.push(
+        `${String(row.commit).padStart(width, " ")} +${text}${head}`,
+      );
+    });
+    return lines.join("\n");
   }
 
   public describe(event: EditEvent | null): string {

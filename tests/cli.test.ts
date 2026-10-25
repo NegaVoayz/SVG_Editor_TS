@@ -256,6 +256,19 @@ describe("CLI behaviour", () => {
     );
   });
 
+  it("shows HEAD, the requested neighbours, folded commits, and baseline", () => {
+    const output = run(
+      "init; create g g0; create g g1; create g g2; create g g3; create g g4; create g g5; history 2",
+    );
+    expect(output).toContain(
+      "7 +g#g5 created (HEAD)\n" +
+        "6 +g#g4 created\n" +
+        "5 +g#g3 created\n" +
+        "... 3 commits folded ...\n" +
+        "1 +baseline",
+    );
+  });
+
   it("checks out an earlier commit and returns", () => {
     const output = run(
       "init; create rect r 0 0 1 1; move r 5 7; checkout 2; show r; checkout 3; show r",
@@ -594,8 +607,9 @@ describe("CLI behaviour", () => {
     const historyLines = output
       .split("\n")
       .filter((line) => /^\s*\d+ \+/u.test(line));
-    expect(historyLines).toHaveLength(6);
+    expect(historyLines).toHaveLength(7);
     expect(output).toContain("16 +g#g14");
+    expect(output).toContain("... 9 commits folded ...");
   });
 
   it("moves through transform by default under T6", () => {

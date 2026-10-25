@@ -100,20 +100,44 @@ export class History {
       const commit = this.document.commitAt(position);
       const event = commit === undefined ? undefined : this.events.get(commit);
       if (commit !== undefined && event !== undefined) {
-        entries.push(new HistoryEntry(commit, event, position));
+        entries.push(new HistoryEntry(commit, event, position + 1));
       }
     }
     const cap = Math.max(0, limit ?? this.defaultLimit);
-    const selected =
-      entries.length <= cap
-        ? entries
-        : entries.slice(Math.max(0, entries.length - cap));
+    const head = this.document.position();
+    // HEAD plus up to `cap` neighbours are selected; the branch ends remain anchors.
+    const selected = new Array<boolean>(depth + 1).fill(cap >= depth);
+    if (cap < depth && cap !== 0) {
+      selected[head] = true;
+      const aboveTarget = Math.floor(cap / 2);
+      let above = Math.min(aboveTarget, depth - head);
+      let below = Math.min(cap - above, head);
+      let remaining = cap - above - below;
+      const extraBelow = Math.min(remaining, head - below);
+      below += extraBelow;
+      remaining -= extraBelow;
+      const extraAbove = Math.min(remaining, depth - head - above);
+      above += extraAbove;
+      for (let offset = 1; offset <= above; offset += 1) {
+        selected[head + offset] = true;
+      }
+      for (let offset = 1; offset <= below; offset += 1) {
+        selected[head - offset] = true;
+      }
+    }
+    if (cap < depth) {
+      selected[0] = true;
+      selected[head] = true;
+      selected[depth] = true;
+    }
     return {
       baseline: this.document.baselineCommit(),
       head: this.document.commitId(),
       position: this.document.position(),
       depth,
-      entries: selected,
+      entries: entries.filter(
+        (entry) => selected[entry.position] === true,
+      ),
     };
   }
 }
